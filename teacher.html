@@ -1,0 +1,1449 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teacher Panel - Virtual Classroom</title>
+<style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    
+    body { 
+        font-family: 'Segoe UI', Arial, sans-serif; 
+        background: #111214; 
+        color: #fff; 
+        height: 100vh; 
+        display: flex; 
+        flex-direction: column; 
+        overflow: hidden; 
+    }
+
+    /* ===========================
+       Welcome Screen Fixed
+    =========================== */
+    .welcome-container {
+        position: fixed;
+        inset: 0;
+        width: 100vw;
+        height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        background: linear-gradient(135deg, #0f172a, #1e3a8a, #2563eb);
+        z-index: 999999;
+        transition: 0.4s ease;
+    }
+
+    .welcome-container.hide {
+        opacity: 0;
+        visibility: hidden;
+        pointer-events: none;
+    }
+
+    .welcome-card {
+        width: 90%;
+        max-width: 480px;
+        padding: 45px 35px;
+        text-align: center;
+        border-radius: 20px;
+        background: rgba(255, 255, 255, .12);
+        backdrop-filter: blur(18px);
+        border: 1px solid rgba(255, 255, 255, .18);
+        box-shadow: 0 20px 45px rgba(0, 0, 0, .4);
+        color: #fff;
+        animation: cardPop .5s ease;
+    }
+
+    .welcome-icon {
+        font-size: 60px;
+        margin-bottom: 15px;
+    }
+
+    .welcome-card h1 {
+        margin: 0;
+        font-size: 22px;
+        font-weight: 400;
+    }
+
+    .welcome-card h2 {
+        margin: 10px 0;
+        font-size: 34px;
+        color: #fff;
+        font-weight: 700;
+    }
+
+    .welcome-card p {
+        color: #dbeafe;
+        margin: 20px 0 30px;
+        line-height: 1.6;
+    }
+
+    .welcome-card .controls {
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+    }
+
+    .welcome-card .controls input {
+        padding: 15px;
+        border: none;
+        border-radius: 12px;
+        font-size: 16px;
+        outline: none;
+        width: 100%;
+        color: #000;
+    }
+
+    .welcome-card .controls button {
+        padding: 15px;
+        border: none;
+        border-radius: 12px;
+        background: #22c55e;
+        color: #fff;
+        font-size: 16px;
+        font-weight: bold;
+        cursor: pointer;
+        transition: .3s;
+        width: 100%;
+    }
+
+    .welcome-card .controls button:hover {
+        background: #16a34a;
+        transform: translateY(-2px);
+    }
+
+    /* Tools Bar & Equal-Sized Controls */
+    .tools-bar { 
+        padding: 10px; 
+        background: #1a1c20; 
+        border-bottom: 1px solid #2a2d32; 
+        position: relative; 
+        flex-shrink: 0;
+    }
+    
+    .sidebar .controls {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 8px;
+        width: 100%;
+    }
+
+    .sidebar .controls button { 
+        width: 100%;
+        height: 42px;
+        padding: 0 10px; 
+        font-size: 13px; 
+        border: none; 
+        border-radius: 6px; 
+        background: #2ea44f; 
+        color: white; 
+        cursor: pointer; 
+        font-weight: bold; 
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        box-sizing: border-box;
+        margin: 0;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    
+    #shareBtn { background: #007fff; }
+    #muteAllBtn { background: #ea4335; }
+    #unmuteAllBtn { background: #2ea44f; }
+    #youtubeStreamBtn { background: #ff0000; color: white; }
+    #masterChatBtn { background: #ff9800; color: #000; }
+
+    /* Pending Requests Section in Sidebar */
+    .pending-requests-box {
+        display: none;
+        flex-direction: column;
+        gap: 6px;
+        background: #202328;
+        border: 1px solid #3d424d;
+        border-radius: 6px;
+        padding: 8px;
+        margin-top: 5px;
+        flex-shrink: 0;
+    }
+    .pending-requests-title {
+        font-size: 11px;
+        font-weight: bold;
+        color: #ff9800;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    .pending-badge {
+        background: #ea4335;
+        color: #fff;
+        padding: 1px 6px;
+        border-radius: 10px;
+        font-size: 10px;
+    }
+    .pending-list-items {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        max-height: 180px;
+        overflow-y: auto;
+    }
+    .pending-item {
+        background: #141518;
+        border: 1px solid #2d3139;
+        border-radius: 6px;
+        padding: 6px;
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+    }
+    .pending-item-name {
+        font-size: 12px;
+        font-weight: bold;
+        color: #dbeafe;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .pending-actions {
+        display: flex;
+        gap: 5px;
+    }
+    .pending-actions button {
+        flex: 1;
+        height: 28px !important;
+        font-size: 11px !important;
+        padding: 0 !important;
+        border-radius: 4px !important;
+    }
+    .btn-accept { background: #2ea44f !important; }
+    .btn-reject { background: #ea4335 !important; }
+
+    /* Meeting Layout & Sidebar */
+    .meeting-container { 
+        display: flex; 
+        flex: 1; 
+        height: 100vh; 
+        overflow: hidden; 
+        position: relative; 
+    }
+    
+    .sidebar { 
+        width: 230px; 
+        background: #161719; 
+        border-right: 1px solid #2a2d32; 
+        display: flex; 
+        flex-direction: column; 
+        gap: 8px; 
+        padding: 10px; 
+        height: 100%; 
+        overflow-y: auto; 
+        flex-shrink: 0;
+    }
+    
+    .sidebar::-webkit-scrollbar { width: 6px; }
+    .sidebar::-webkit-scrollbar-thumb { background: #90f169; border-radius: 4px; }
+    .sidebar::-webkit-scrollbar-track { background: #ffffff; }
+
+    /* Student Grid Structure Fix */
+    .studentgrid { 
+        flex: 1; 
+        overflow-y: auto; 
+        padding: 5px; 
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        height: 100%;
+    }
+
+    .student-card { 
+        position: relative; 
+        width: 100%; 
+        background: #222; 
+        border-radius: 8px; 
+        border: 2px solid #3e424b; 
+        overflow: hidden; 
+        flex-shrink: 0; 
+        cursor: pointer;
+    }
+
+    .student-card video { 
+        width: 100%; 
+        height: auto;
+        aspect-ratio: 4/3; 
+        display: block;
+        object-fit: cover;
+    }
+
+    .studentgrid::-webkit-scrollbar { width: 8px; }
+    .studentgrid::-webkit-scrollbar-thumb { background: #90fc82; border-radius: 10px; }
+    .studentgrid::-webkit-scrollbar-track { background: #ffffff; }
+
+    .student-label { 
+        position: absolute; 
+        bottom: 5px; 
+        left: 5px; 
+        background: rgba(0,0,0,0.6); 
+        padding: 2px 6px; 
+        font-size: 11px; 
+        border-radius: 4px; 
+        max-width: 65%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    /* Camera Switch Button Overlay */
+    .cam-switch-btn {
+        background: rgba(0, 0, 0, 0.7);
+        color: #fff;
+        border: 1px solid rgba(255, 255, 255, 0.4);
+        padding: 8px 14px;
+        border-radius: 20px;
+        font-size: 14px;
+        font-weight: bold;
+        cursor: pointer;
+        z-index: 50;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        transition: background 0.2s;
+    }
+    .camera-mirror{
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+    .mirror-icon{
+        font-size: 20px;
+        line-height: 1;
+    }
+    .cam-switch-btn:hover {
+        background: rgba(0, 127, 255, 0.8);
+    }
+
+    .main-display-label {
+        position: absolute;
+        bottom: 15px;
+        left: 15px;
+        background: rgba(0, 0, 0, 0.7);
+        color: #fff;
+        padding: 6px 12px;
+        border-radius: 6px;
+        font-size: 13px;
+        font-weight: bold;
+        z-index: 10;
+        max-width: 80%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .student-card.swapped-teacher {
+        border-color: #ff9800;
+    }
+    
+    .mic-control-btn { 
+        position: absolute; 
+        top: 5px; 
+        right: 5px; 
+        border: none; 
+        padding: 6px 12px; 
+        font-size: 12px; 
+        font-weight: bold; 
+        border-radius: 4px; 
+        cursor: pointer; 
+        color: white; 
+        transition: 0.2s; 
+        z-index: 20; 
+    }
+    
+    .mic-off { background: #ea4335; } 
+    .mic-on { background: #2ea44f; }  
+    .hand-raised { background: #ff9800; color: #000; animation: blink 1s infinite; box-shadow: 0 0 10px #ff9800; }
+
+    @keyframes blink { 50% { opacity: 0.4; } }
+
+    /* Main Video Display */
+    .main-display { 
+        flex: 1; 
+        display: flex; 
+        justify-content: center; 
+        align-items: center; 
+        background: #0e0f11; 
+        padding: 2px; 
+        position: relative; 
+        overflow: hidden; 
+    }
+
+    .main-display video { 
+        width: 100%; 
+        height: 100%; 
+        object-fit: fill; 
+        background: #000; 
+        border-radius: 12px; 
+    }
+
+    #participantCounter.counter-header {
+        position: absolute; 
+        top: 15px;          
+        left: 15px;         
+        z-index: 10;        
+        width: 50px;        
+        height: 50px;       
+        background-color: rgba(255, 255, 255, 0.9); 
+        border-radius: 50%; 
+        display: none;
+        justify-content: center;
+        align-items: center;
+        color: rgb(255, 0, 0);
+        font-size: 24px;
+        font-weight: bold;
+        font-family: sans-serif;
+        overflow: hidden;
+        text-align: center;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.5);
+    }
+        
+    .mirror { transform: scaleX(-1); }
+
+    /* Floating Chat Panel Overlay */
+    .chat-panel { 
+        position: absolute !important;
+        right: 20px !important;
+        bottom: 70px !important;
+        top: auto !important;
+        left: auto !important;
+        width: 0 !important;
+        height: 0 !important;
+        opacity: 0;
+        background: rgba(22, 23, 25, 0.95) !important;
+        backdrop-filter: blur(8px);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 10px;
+        box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.7);
+        display: flex; 
+        flex-direction: column; 
+        transition: all 0.3s ease; 
+        overflow: hidden; 
+        z-index: 99999 !important; 
+    }
+
+    .chat-panel.open { 
+        width: 320px !important; 
+        height: 400px !important;
+        max-height: 70vh !important;
+        opacity: 1;
+    }
+
+    .chat-header { padding: 15px; background: #1a1c20; font-weight: bold; text-align: center; border-bottom: 1px solid #2a2d32; color: #ff9800; }
+    .chat-messages { flex: 1; padding: 15px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
+    .msg-block { padding: 8px 12px; border-radius: 6px; max-width: 85%; font-size: 13px; line-height: 1.4; word-break: break-all; }
+    .msg-me { background: #007fff; color: #fff; align-self: flex-end; }
+    .msg-other { background: #2a2d32; color: #fff; align-self: flex-start; }
+    .chat-input-area { padding: 10px; background: #1a1c20; border-top: 1px solid #2a2d32; display: flex; flex-direction: column; gap: 8px; }
+    .chat-row { display: flex; gap: 5px; }
+    .chat-input-area input[type="text"] { flex: 1; padding: 8px; background: #222; border: 1px solid #3a3f47; border-radius: 4px; color: #fff; outline: none; }
+    .chat-input-area button { padding: 8px 15px; background: #2ea44f; border: none; color: #fff; font-weight: bold; border-radius: 4px; cursor: pointer; }
+    .file-label { display: inline-block; background: #444; text-align: center; padding: 5px; font-size: 11px; border-radius: 4px; cursor: pointer; font-weight: bold; }
+    .file-link { color: #ff9800; text-decoration: underline; display: block; font-weight: bold; margin-top: 4px; }
+
+    /* Responsive Styles (Mobile & Small Screens) */
+    @media screen and (max-width: 768px) {
+        body { height: 100vh; overflow: auto; }
+        
+        #shareBtn{
+            display: none !important;
+        }
+
+        #youtubeStreamBtn{
+            display: none !important;
+        }
+        .meeting-container { 
+            flex-direction: column; 
+            height: auto; 
+        }
+
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+            height: auto;
+            max-height: 300px;
+            box-sizing: border-box;
+            overflow: hidden;
+        }
+
+        .sidebar .controls {
+            grid-template-columns: repeat(2, 1fr);
+        }
+
+        .studentgrid {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            gap: 10px;
+            overflow-x: auto;
+            white-space: nowrap;
+            padding: 10px 0;
+        }
+
+        .student-card {
+            min-width: 130px;
+            width: 90%;
+            flex-shrink: 0;
+        }
+
+        .main-display {
+            width: 100%;
+            height: calc(100vh - 300px);
+            min-height: 300px;
+        }
+    }
+</style>
+</head>
+<body>
+ 
+    <!-- 1. Welcome Container -->
+    <div class="welcome-container" id="welcomeScreen">
+        <div class="welcome-card">
+            <div class="welcome-icon">🎓</div>
+            <h1>Welcome to</h1>
+            <h2>Lachit Global Studies</h2>
+            <p>Create your live class and start teaching with your students in real time.</p>
+            <div class="controls">
+                <input type="text" id="customRoomIdInput" placeholder="Create Room ID" style="text-align: center;">
+                <button id="createBtn">Create Class </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. Main Meeting Layout -->
+    <div class="meeting-container" id="meetingContainer" style="display: none;">
+        <div class="sidebar">
+            <div class="tools-bar">
+                <!-- Controls Grid Section -->
+                <div class="controls">
+                    <button id="shareBoardOnlyBtn" style="display: none;">Share WhiteBoard Only 🖥️</button>
+                    <button id="shareBtn" style="display: none;">Share Screen 🖥️</button>
+                    <button id="youtubeStreamBtn" style="display: none;">Stream YouTube 🎥</button>
+                    <button id="muteAllBtn" style="display: none;">Mute All 🎙️❌</button>
+                    <button id="unmuteAllBtn" style="display: none;">Unmute All 🎙️✅</button>
+                    <button id="masterChatBtn" style="display: none;">Chat Board 💬</button>
+                </div>
+            </div>
+
+            <!-- Student Pending Approval Section -->
+            <div class="pending-requests-box" id="pendingBox">
+                <div class="pending-requests-title">
+                    <span>Pending Requests</span>
+                    <span class="pending-badge" id="pendingBadge">0</span>
+                </div>
+                <div class="pending-list-items" id="pendingListItems"></div>
+            </div>
+
+            <div class="studentgrid" id="studentGrid"></div>
+        </div>
+
+    <!-- Main Video Display -->
+    <div class="main-display" id="mainArea">
+        <div id="participantCounter" class="counter-header">0</div>
+        <video id="localVideo" autoplay playsinline class="mirror"></video>
+        
+        <!-- Updated Overlay Controls -->
+        <div class="cam-controls-overlay" style="position: absolute; top: 15px; right: 15px; display: flex; gap: 8px; z-index: 50;">
+            <button id="cameraMirror" class="cam-switch-btn" style="display: none;">🪞 Mirror</button>
+            <button id="toggleAudioBtn" class="cam-switch-btn" style="display: none;">🎙️ Mute Audio</button>
+            <button id="toggleVideoBtn" class="cam-switch-btn" style="display: none;">📹 Turn Off Video</button>
+            <button id="camSwitchBtn" class="cam-switch-btn" style="display: none;">📷 My Camera</button>
+            <button id="studentCamSwitchBtn" class="cam-switch-btn" style="display: none; background: #ff9800; color: #000;">📷 Student's Camera</button>
+        </div>
+
+        <div id="mainDisplayLabel" class="main-display-label" style="display: none;">Teacher (You)</div>
+    </div>
+
+        <!-- Floating Chat Panel -->
+        <div class="chat-panel" id="chatPanel">
+            <div class="chat-header">Classroom Sync Chat (Live)</div>
+            <div class="chat-messages" id="chatWindow"></div>
+            <div class="chat-input-area">
+                <div class="chat-row">
+                    <input type="text" id="msgInput" placeholder="Type a message...">
+                    <button id="sendMsgBtn">Send</button>
+                </div>
+                <label class="file-label">
+                    📁 Share File / Notes (PDF, Image)
+                    <input type="file" id="fileInput" style="display: none;">
+                </label>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stream Key Modal -->
+    <div id="streamKeyModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.75); z-index:99999; justify-content:center; align-items:center;">
+      <div style="background:#222; padding:20px; border-radius:10px; width:90%; max-width:400px; display:flex; flex-direction:column; gap:12px; border:1px solid #444;">
+        <h3 style="margin:0; font-size:16px;">Enter YouTube Stream Key</h3>
+        <input type="text" id="streamKeyInput" placeholder="Paste your stream key here..." style="padding:10px; border-radius:6px; border:1px solid #555; background:#111; color:#fff; outline:none;">
+        <div style="display:flex; justify-content:flex-end; gap:8px;">
+          <button id="cancelStreamBtn" style="padding:8px 14px; background:#555; border:none; color:#fff; border-radius:4px; cursor:pointer;">Cancel</button>
+          <button id="confirmStreamBtn" style="padding:8px 14px; background:#ff0000; border:none; color:#fff; font-weight:bold; border-radius:4px; cursor:pointer;">Start Streaming</button>
+        </div>
+      </div>
+    </div>
+
+   <!-- ১. Socket.io লাইব্রেরি সরাসরি আপনার সার্ভার অথবা CDN থেকে লোড করুন -->
+<script src="https://webrtc-project-k0jx.onrender.com/socket.io/socket.io.js"></script>
+
+<script>
+    // ২. রিলেটিভ io() এর বদলে আপনার Render সার্ভারের URL দিন
+    const socket = io("https://webrtc-project-k0jx.onrender.com", {
+        transports: ["websocket", "polling"]
+    });
+
+    let localStream;
+    let screenStream;
+    let mediaRecorder; 
+    let isScreenSharing = false;
+    let isLiveStreaming = false;
+    let isChatPanelOpen = false;
+    let overlayTimeout;
+    const peerConnections = {};
+    const studentMicStatus = {}; 
+    const studentNames = {}; // Store real student names
+    const servers = {
+        iceServers: [
+            { urls: 'stun:stun.l.google.com:19302' },
+            { urls: 'stun:stun1.l.google.com:19302' },
+            { urls: 'stun:stun2.l.google.com:19302' }
+        ]
+    };
+    let currentCamFacingMode = "user";
+    let activeSwappedStudentId = null;
+        
+        const studentCamSwitchBtn = document.getElementById('studentCamSwitchBtn');
+        const cameraMirror = document.getElementById('cameraMirror');
+        const camSwitchBtn = document.getElementById('camSwitchBtn');
+        const mainDisplayLabel = document.getElementById('mainDisplayLabel');
+        const chatPanel = document.getElementById('chatPanel');
+        const masterChatBtn = document.getElementById('masterChatBtn');
+        const participantCounter = document.getElementById('participantCounter');
+        const localVideo = document.getElementById('localVideo');
+        const meetingContainer = document.getElementById('meetingContainer');
+        const welcomeScreen = document.getElementById('welcomeScreen');
+        const toggleAudioBtn = document.getElementById('toggleAudioBtn');
+        const toggleVideoBtn = document.getElementById('toggleVideoBtn');
+        const pendingBox = document.getElementById('pendingBox');
+        const pendingBadge = document.getElementById('pendingBadge');
+        const pendingListItems = document.getElementById('pendingListItems');
+        let isAudioMuted = false;
+        let isVideoStopped = false;
+
+        function toggleMeetingFullscreen() {
+            if (!document.fullscreenElement) {
+                meetingContainer.requestFullscreen().catch(err => {
+                    console.error("Fullscreen failed:", err);
+                });
+            } else {
+                document.exitFullscreen();
+            }
+        }
+
+        let touchTimer = null;
+
+        localVideo.addEventListener("click", function (e) {
+            if (touchTimer === null) {
+                touchTimer = setTimeout(() => {
+                    touchTimer = null;
+                    const overlayControls = document.querySelector('.cam-controls-overlay');
+                    if (overlayControls.style.display === 'none' || overlayControls.style.display === '') {
+                        showOverlayControls();
+                    } else {
+                        overlayControls.style.display = 'none';
+                        clearTimeout(overlayTimeout);
+                    }
+                }, 300);
+            }
+        });
+
+        localVideo.addEventListener("dblclick", function (e) {
+            clearTimeout(touchTimer);
+            touchTimer = null;
+            toggleMeetingFullscreen();
+        });
+
+        let lastTapTime = 0;
+        localVideo.addEventListener("touchend", function (e) {
+            const currentTime = new Date().getTime();
+            const tapLength = currentTime - lastTapTime;
+            
+            if (tapLength < 300 && tapLength > 0) {
+                e.preventDefault();
+                clearTimeout(touchTimer);
+                touchTimer = null;
+                toggleMeetingFullscreen();
+            } else {
+                touchTimer = setTimeout(() => {
+                    touchTimer = null;
+                    const overlayControls = document.querySelector('.cam-controls-overlay');
+                    if (overlayControls.style.display === 'none' || overlayControls.style.display === '') {
+                        showOverlayControls();
+                    } else {
+                        overlayControls.style.display = 'none';
+                        clearTimeout(overlayTimeout);
+                    }
+                }, 300);
+            }
+            lastTapTime = currentTime;
+        });
+
+        function updateCountUI(count) {
+            if(count !== undefined && participantCounter) {
+                participantCounter.innerText = count;
+                participantCounter.style.display = 'flex';
+            }
+        }
+
+        function createDummyStream() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 640;
+            canvas.height = 480;
+            const ctx = canvas.getContext('2d');
+            
+            let x = 0;
+            function draw() {
+                ctx.fillStyle = '#1e1e1e';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.fillStyle = '#2ea44f';
+                ctx.font = '24px Arial';
+                ctx.fillText('Virtual Classroom - Dummy Camera Active', 50, 100);
+                ctx.fillStyle = '#007fff';
+                ctx.fillRect(x, 200, 100, 100);
+                x = (x + 2) % canvas.width;
+                requestAnimationFrame(draw);
+            }
+            draw();
+
+            return canvas.captureStream(30);
+        }
+
+        masterChatBtn.onclick = () => {
+            if (!isChatPanelOpen) {
+                chatPanel.classList.add('open');
+                masterChatBtn.innerText = "Close Chat ✖";
+                masterChatBtn.style.background = "#ea4335";
+                isChatPanelOpen = true;
+                socket.emit('toggle-room-chat', { open: true }); 
+            } else {
+                chatPanel.classList.remove('open');
+                masterChatBtn.innerText = "Chat Board 💬";
+                masterChatBtn.style.background = "#ff9800";
+                isChatPanelOpen = false;
+                socket.emit('toggle-room-chat', { open: false }); 
+            }
+        };
+
+        toggleAudioBtn.onclick = () => {
+            if (!localStream) return;
+            
+            const audioTracks = localStream.getAudioTracks();
+            if (audioTracks.length === 0) return;
+
+            isAudioMuted = !isAudioMuted;
+            audioTracks.forEach(track => {
+                track.enabled = !isAudioMuted;
+            });
+
+            if (isAudioMuted) {
+                toggleAudioBtn.innerText = "🔇 Unmute Audio";
+                toggleAudioBtn.style.background = "rgba(234, 67, 53, 0.85)";
+            } else {
+                toggleAudioBtn.innerText = "🎙️ Mute Audio";
+                toggleAudioBtn.style.background = "rgba(0, 0, 0, 0.7)";
+            }
+        };
+
+        toggleVideoBtn.onclick = () => {
+            if (!localStream) return;
+
+            const videoTracks = localStream.getVideoTracks();
+            if (videoTracks.length === 0) return;
+
+            isVideoStopped = !isVideoStopped;
+            videoTracks.forEach(track => {
+                track.enabled = !isVideoStopped;
+            });
+
+            if (isVideoStopped) {
+                toggleVideoBtn.innerText = "📷 Turn On Video";
+                toggleVideoBtn.style.background = "rgba(234, 67, 53, 0.85)";
+            } else {
+                toggleVideoBtn.innerText = "📹 Turn Off Video";
+                toggleVideoBtn.style.background = "rgba(0, 0, 0, 0.7)";
+            }
+        };
+
+        socket.on('pending-list-update', (list) => {
+            pendingListItems.innerHTML = '';
+            if (!list || list.length === 0) {
+                pendingBox.style.display = 'none';
+                return;
+            }
+
+            pendingBox.style.display = 'flex';
+            pendingBadge.innerText = list.length;
+
+            list.forEach(student => {
+                const item = document.createElement('div');
+                item.className = 'pending-item';
+                item.id = `pending-${student.id}`;
+                item.innerHTML = `
+                    <div class="pending-item-name">👤 ${student.name}</div>
+                    <div class="pending-actions">
+                        <button class="btn-accept" onclick="acceptStudent('${student.id}')">Accept ✅</button>
+                        <button class="btn-reject" onclick="rejectStudent('${student.id}')">Reject ❌</button>
+                    </div>
+                `;
+                pendingListItems.appendChild(item);
+            });
+        });
+
+        window.acceptStudent = function(studentId) {
+            socket.emit('accept-student', { studentId });
+        };
+
+        window.rejectStudent = function(studentId) {
+            socket.emit('reject-student', { studentId });
+        };
+        // --- NOTIFICATION & SOUND FOR STUDENT REQUESTS ---
+        function playJoinChime() {
+            try {
+                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                const now = audioCtx.currentTime;
+
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(740, now);          // F#5
+                osc.frequency.setValueAtTime(880, now + 0.12);     // A5
+
+                gain.gain.setValueAtTime(0.2, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+
+                osc.start(now);
+                osc.stop(now + 0.4);
+            } catch (e) {
+                console.warn("Audio chime failed:", e);
+            }
+        }
+
+        function showStudentNotification(studentName) {
+            if ("Notification" in window && Notification.permission === "granted") {
+                new Notification("New Student Join Request 🎓", {
+                    body: `${studentName} wants to enter the class.`
+                });
+            }
+        }
+
+        socket.on('student-join-request', ({ id, name }) => {
+            playJoinChime();
+            showStudentNotification(name);
+        });
+
+        document.getElementById('createBtn').onclick = async function() {
+            const customInput = document.getElementById('customRoomIdInput');
+            const roomId = customInput ? customInput.value.trim() : "";
+
+            if (!roomId) {
+                alert("Please Enter a room id");
+                return;
+            }
+            if ("Notification" in window && Notification.permission !== "denied") {
+                Notification.requestPermission();
+            }
+
+            try {
+                localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+            } catch (err) {
+                console.warn("Camera/Mic access denied or not found. Falling back to dummy video stream.", err);
+                alert("Your camera and microphone is not accessible , a dummy video will play");
+                
+                localStream = createDummyStream();
+                
+                try {
+                    const audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    audioStream.getAudioTracks().forEach(track => localStream.addTrack(track));
+                } catch (e) {
+                    console.warn("Audio fallback also failed, running with video-only dummy stream.");
+                }
+            }
+            
+            localVideo.srcObject = localStream;
+            localVideo.muted = true;
+            
+            const joinLink = `${window.location.origin}/index.html?room=${roomId}`;
+
+            let linkDisplay = document.getElementById('shareLinkDisplay');
+            if(!linkDisplay) {
+                linkDisplay = document.createElement('div');
+                linkDisplay.id = 'shareLinkDisplay';
+                linkDisplay.style.cssText = "width: 100%; margin-top: 5px;";
+                document.querySelector('.sidebar .tools-bar .controls').appendChild(linkDisplay);
+            }
+
+            linkDisplay.innerHTML = `
+                <input type="text" id="copyLinkInput" value="${joinLink}" readonly style="display:none;">
+                <button id="copyLinkBtn" style="width: 100%; height: 42px; background: #2ea44f; color: white; font-weight: bold; border-radius: 6px; border: none; cursor: pointer;">📤 Share Join Link</button>
+            `;
+
+            document.getElementById('copyLinkBtn').onclick = async () => {
+                const link = document.getElementById('copyLinkInput').value;
+
+                if (navigator.share) {
+                    try {
+                        await navigator.share({
+                            title: "LGS Live Tuition",
+                            text: "Join my live class",
+                            url: link
+                        });
+                        document.getElementById('copyLinkBtn').innerText = "✅ Shared!";
+                        setTimeout(() => {
+                            document.getElementById('copyLinkBtn').innerText = "📤 Share Join Link";
+                        }, 2000);
+                    } catch (err) {
+                        console.log("Share cancelled");
+                    }
+                } else {
+                    navigator.clipboard.writeText(link).then(() => {
+                        alert("Sharing is not supported on this device.\nLink copied instead.");
+                    });
+                }
+            };
+            
+            socket.emit('join-room', { roomId, role: 'teacher' });
+
+            welcomeScreen.classList.add('hide');
+            setTimeout(() => { welcomeScreen.style.display = 'none'; }, 400);
+            meetingContainer.style.display = 'flex';
+
+            const isMobileDevice = () => {
+                return window.innerWidth <= 768 || (window.innerHeight <= 500 && window.matchMedia("(orientation: landscape)").matches);
+            };
+
+            // teacher.html: createBtn.onclick এর ভেতর
+            if (!isMobileDevice()) {
+                document.getElementById('shareBtn').style.display = 'flex';
+                document.getElementById('shareBoardOnlyBtn').style.display = 'flex'; // <--- এই লাইনটি যোগ করুন
+                document.getElementById('youtubeStreamBtn').style.display = 'flex';
+            }
+            document.getElementById('muteAllBtn').style.display = 'flex';
+            document.getElementById('unmuteAllBtn').style.display = 'flex';
+            toggleAudioBtn.style.display = 'flex';
+            toggleVideoBtn.style.display = 'flex';
+            camSwitchBtn.style.display = 'flex';
+            masterChatBtn.style.display = 'flex';
+            if(participantCounter) participantCounter.style.display = 'flex';
+            studentCamSwitchBtn.style.display = 'none';   
+            mainDisplayLabel.style.display = 'block';  
+            cameraMirror.style.display = 'flex';
+            resetOverlayTimeout();  
+        };
+
+        const streamKeyModal = document.getElementById('streamKeyModal');
+        const streamKeyInput = document.getElementById('streamKeyInput');
+        const confirmStreamBtn = document.getElementById('confirmStreamBtn');
+        const cancelStreamBtn = document.getElementById('cancelStreamBtn');
+        
+        document.getElementById('youtubeStreamBtn').onclick = function() {
+            if (!isLiveStreaming) {
+                streamKeyInput.value = '';
+                streamKeyModal.style.display = 'flex';
+            } else {
+                socket.emit('stop-youtube-stream');
+            }
+        };
+        
+        cancelStreamBtn.onclick = function() {
+            streamKeyModal.style.display = 'none';
+        };
+        
+        confirmStreamBtn.onclick = function() {
+            const streamKey = streamKeyInput.value.trim();
+            if (!streamKey) {
+                return alert("Stream Key is required to push media live!");
+            }
+            streamKeyModal.style.display = 'none';
+            socket.emit('start-youtube-stream', { streamKey });
+        };
+
+        socket.on('stream-started', () => {
+            isLiveStreaming = true;
+            const btn = document.getElementById('youtubeStreamBtn');
+            btn.innerText = "Stop Stream 🛑";
+            btn.style.background = "#333";
+
+            const trackingStream = isScreenSharing ? screenStream : localStream;
+            mediaRecorder = new MediaRecorder(trackingStream, {
+                mimeType: 'video/webm;codecs=vp8,opus',
+                videoBitsPerSecond: 2500000
+            });
+
+            mediaRecorder.ondataavailable = async (e) => {
+                if (e.data && e.data.size > 0) socket.emit('stream-chunk', e.data);
+            };
+            mediaRecorder.start(1000); 
+        });
+
+        socket.on('stream-stopped', () => { cleanupStreaming(); });
+        socket.on('stream-error', (err) => { alert(err); cleanupStreaming(); });
+
+        function showOverlayControls() {
+            const overlayControls = document.querySelector('.cam-controls-overlay');
+            if (overlayControls) {
+                overlayControls.style.display = 'flex';
+                mainDisplayLabel.style.display = 'flex';
+            }
+            resetOverlayTimeout();
+        }
+
+        function resetOverlayTimeout() {
+            clearTimeout(overlayTimeout);
+            overlayTimeout = setTimeout(() => {
+                const overlayControls = document.querySelector('.cam-controls-overlay');
+                if (overlayControls) {
+                    overlayControls.style.display = 'none';
+                    mainDisplayLabel.style.display = 'none';
+                }
+            }, 5000);
+        }
+
+        function cleanupStreaming() {
+            isLiveStreaming = false;
+            const btn = document.getElementById('youtubeStreamBtn');
+            btn.innerText = "Stream YouTube 🎥";
+            btn.style.background = "#ff0000";
+            if (mediaRecorder && mediaRecorder.state !== 'inactive') mediaRecorder.stop();
+        }
+
+        document.getElementById('sendMsgBtn').onclick = sendTextMessage;
+        document.getElementById('msgInput').onkeypress = (e) => { if (e.key === 'Enter') sendTextMessage(); };
+
+        function sendTextMessage() {
+            const input = document.getElementById('msgInput');
+            const text = input.value.trim();
+            if (!text) return;
+            const data = { sender: 'Teacher', text: text };
+            socket.emit('send-message', data);
+            appendMsg(data, 'msg-me');
+            input.value = '';
+        }
+
+        document.getElementById('fileInput').onchange = function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            if (file.size > 10 * 1024 * 1024) return alert("File size must be under 10MB");
+
+            const reader = new FileReader();
+            reader.onload = function(evt) {
+                const fileData = {
+                    sender: 'Teacher',
+                    fileName: file.name,
+                    fileBuffer: evt.target.result
+                };
+                socket.emit('share-file', fileData);
+                appendFile(fileData, 'msg-me');
+            };
+            reader.readAsDataURL(file);
+        };
+
+        socket.on('receive-message', (data) => { appendMsg(data, 'msg-other'); });
+        socket.on('receive-file', (data) => { appendFile(data, 'msg-other'); });
+
+        function appendMsg(data, className) {
+            const win = document.getElementById('chatWindow');
+            const div = document.createElement('div');
+            div.className = `msg-block ${className}`;
+            div.innerHTML = `<strong>${data.sender}:</strong> ${data.text}`;
+            win.appendChild(div);
+            win.scrollTop = win.scrollHeight;
+        }
+
+        function appendFile(data, className) {
+            const win = document.getElementById('chatWindow');
+            const div = document.createElement('div');
+            div.className = `msg-block ${className}`;
+            div.innerHTML = `<strong>${data.sender} Shared:</strong> <a class="file-link" href="${data.fileBuffer}" download="${data.fileName}">📁 ${data.fileName}</a>`;
+            win.appendChild(div);
+            win.scrollTop = win.scrollHeight;
+        }
+
+        document.getElementById('muteAllBtn').onclick = function() { socket.emit('mute-all-students'); };
+        document.getElementById('unmuteAllBtn').onclick = function() { socket.emit('unmute-all-students'); };
+
+        document.getElementById('shareBtn').onclick = async function() {
+            if (!isScreenSharing) {
+                try {
+                    screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true });
+                    const videoTrack = screenStream.getVideoTracks()[0];
+                    
+                    for (let userId in peerConnections) {
+                        const sender = peerConnections[userId].getSenders().find(s => s.track && s.track.kind === 'video');
+                        if (sender) sender.replaceTrack(videoTrack);
+                    }
+                    
+                    localVideo.srcObject = screenStream;
+                    localVideo.classList.remove('mirror');
+                    
+                    this.innerText = "Stop Sharing ❌";
+                    this.style.background = "#ea4335";
+                    isScreenSharing = true;
+
+                    if (isLiveStreaming && mediaRecorder && mediaRecorder.state !== 'inactive') {
+                        mediaRecorder.stop();
+                        mediaRecorder = new MediaRecorder(screenStream, { mimeType: 'video/webm;codecs=vp8,opus', videoBitsPerSecond: 2500000 });
+                        mediaRecorder.ondataavailable = (e) => { if (e.data && e.data.size > 0) socket.emit('stream-chunk', e.data); };
+                        mediaRecorder.start(1000);
+                    }
+                    
+                    videoTrack.onended = () => { stopScreenShare(); };
+                } catch (error) {
+                    console.error("Error starting screen share:", error);
+                }
+            } else {
+                stopScreenShare();
+            }
+        };
+
+        camSwitchBtn.onclick = async () => {
+            try {
+                if (localStream) {
+                    const oldVideoTrack = localStream.getVideoTracks()[0];
+                    if (oldVideoTrack) oldVideoTrack.stop();
+                }
+
+                currentCamFacingMode = (currentCamFacingMode === "user") ? "environment" : "user";
+
+                const newStream = await navigator.mediaDevices.getUserMedia({
+                    video: { facingMode: currentCamFacingMode },
+                    audio: true
+                });
+                
+                const videoTrack = newStream.getVideoTracks()[0];
+                
+                for (let id in peerConnections) {
+                    const sender = peerConnections[id].getSenders().find(s => s.track && s.track.kind === 'video');
+                    if (sender) sender.replaceTrack(videoTrack);
+                }
+
+                localStream = newStream;
+
+                if (!activeSwappedStudentId) {
+                    localVideo.srcObject = localStream;
+                    if (currentCamFacingMode === "user") {
+                        localVideo.classList.add('mirror');
+                    } else {
+                        localVideo.classList.remove('mirror');
+                    }
+                }
+            } catch (err) {
+                console.error("Teacher camera switch error:", err);
+                alert("Teacher Camera switch failed: " + err.message);
+                currentCamFacingMode = (currentCamFacingMode === "user") ? "environment" : "user";
+            }
+        };
+
+        cameraMirror.onclick = () => {
+            localVideo.classList.toggle('mirror');
+        };
+
+        studentCamSwitchBtn.onclick = () => {
+            if (activeSwappedStudentId) {
+                socket.emit('switch-student-camera', { targetStudentId: activeSwappedStudentId });
+            } else {
+                alert("No student is currently selected in the main display!");
+            }
+        };
+
+        function swapStudentToMain(studentId) {
+            const studentCard = document.getElementById(`card-${studentId}`);
+            if (!studentCard) return;
+
+            const studentVideo = studentCard.querySelector('video');
+            const studentLabel = studentCard.querySelector('.student-label');
+            const displayName = studentNames[studentId] || `Student (${studentId.substring(0,4)})`;
+
+            if (activeSwappedStudentId && activeSwappedStudentId !== studentId) {
+                resetMainDisplay();
+            }
+
+            if (activeSwappedStudentId === studentId) {
+                resetMainDisplay();
+                return;
+            }
+
+            const studentStream = studentVideo.srcObject;
+            const teacherStream = localVideo.srcObject;
+
+            localVideo.srcObject = studentStream;
+            localVideo.muted = false;
+            localVideo.classList.remove('mirror');
+
+            studentVideo.srcObject = teacherStream;
+            studentVideo.classList.add('mirror');
+
+            activeSwappedStudentId = studentId;
+            studentCard.classList.add('swapped-teacher');
+            if(studentLabel) studentLabel.innerText = "Teacher (You)";
+            mainDisplayLabel.innerText = displayName;
+
+            studentCamSwitchBtn.style.display = 'flex';
+            camSwitchBtn.style.display = 'none';
+        }
+
+        function resetMainDisplay() {
+            if (!activeSwappedStudentId) return;
+
+            const studentCard = document.getElementById(`card-${activeSwappedStudentId}`);
+            if (studentCard) {
+                const studentVideo = studentCard.querySelector('video');
+                const studentLabel = studentCard.querySelector('.student-label');
+                const displayName = studentNames[activeSwappedStudentId] || `Student (${activeSwappedStudentId.substring(0,4)})`;
+
+                const currentMainStream = localVideo.srcObject;
+                const currentCardStream = studentVideo.srcObject;
+
+                localVideo.srcObject = currentCardStream;
+                localVideo.muted = true;
+                localVideo.classList.add('mirror');
+
+                studentVideo.srcObject = currentMainStream;
+                studentVideo.classList.remove('mirror');
+
+                studentCard.classList.remove('swapped-teacher');
+                if(studentLabel) studentLabel.innerText = displayName;
+            }
+
+            activeSwappedStudentId = null;
+            mainDisplayLabel.innerText = "Teacher (You)";
+            camSwitchBtn.style.display = 'flex';
+            studentCamSwitchBtn.style.display = 'none';
+        }
+
+        function stopScreenShare() {
+            if (!isScreenSharing) return;
+            
+            const videoTrack = localStream.getVideoTracks()[0];
+            
+            for (let userId in peerConnections) {
+                const sender = peerConnections[userId].getSenders().find(s => s.track && s.track.kind === 'video');
+                if (sender) sender.replaceTrack(videoTrack);
+            }
+            
+            localVideo.srcObject = localStream;
+            localVideo.classList.add('mirror');
+            
+            const shareBtn = document.getElementById('shareBtn');
+            shareBtn.innerText = "Share Screen 🖥️";
+            shareBtn.style.background = "#007fff";
+            
+            if (screenStream) {
+                screenStream.getTracks().forEach(track => track.stop());
+            }
+            
+            isScreenSharing = false;
+
+            if (isLiveStreaming && mediaRecorder) {
+                mediaRecorder.stop();
+                mediaRecorder = new MediaRecorder(localStream, { mimeType: 'video/webm;codecs=vp8,opus', videoBitsPerSecond: 2500000 });
+                mediaRecorder.ondataavailable = (e) => { if (e.data && e.data.size > 0) socket.emit('stream-chunk', e.data); };
+                mediaRecorder.start(1000);
+            }
+        }
+
+        socket.on('all-users', ({ users, count }) => {
+            updateCountUI(count);
+            users.forEach(user => { 
+                if (user.role === 'student' && user.name) {
+                    studentNames[user.id] = user.name;
+                }
+            });
+        });
+
+        socket.on('user-joined', ({ userId, role, name, count }) => {
+            updateCountUI(count);
+            if (role === 'student' && name) {
+                studentNames[userId] = name;
+            }
+        });
+
+        // Student camera ready korle call initiate kora hoy
+        socket.on('start-call-with-student', ({ studentId, name }) => {
+            if (name) studentNames[studentId] = name;
+            let pc = peerConnections[studentId];
+            if (!pc) {
+                pc = createPeerConnection(studentId);
+            }
+            initiateCall(pc, studentId);
+        });
+
+        socket.on('room-count-update', ({ count }) => {
+            updateCountUI(count);
+        });
+
+        async function initiateCall(pc, userId) {
+            const offer = await pc.createOffer();
+            await pc.setLocalDescription(offer);
+            socket.emit('signal', { target: userId, signal: { offer } });
+        }
+
+        socket.on('signal', async (data) => {
+            let pc = peerConnections[data.sender];
+            if (!pc) return;
+            if (data.signal.answer) await pc.setRemoteDescription(new RTCSessionDescription(data.signal.answer));
+            else if (data.signal.candidate) { try { await pc.addIceCandidate(new RTCIceCandidate(data.signal.candidate)); } catch(e){} }
+        });
+
+        socket.on('student-raised-hand', (studentId) => {
+            const btn = document.getElementById(`mic-${studentId}`);
+            const card = document.getElementById(`card-${studentId}`);
+            const grid = document.getElementById('studentGrid');
+            
+            if (btn && studentMicStatus[studentId] !== 'unmuted') { 
+                btn.innerText = "✋ Hand Raised"; 
+                btn.className = "mic-control-btn hand-raised"; 
+                if (card && grid) {
+                    grid.prepend(card);
+                }
+            }
+        });
+
+        socket.on('single-student-unmuted-ui', (studentId) => {
+            studentMicStatus[studentId] = 'unmuted';
+            const btn = document.getElementById(`mic-${studentId}`);
+            if (btn) { btn.innerText = "Live 🎙️"; btn.className = "mic-control-btn mic-on"; }
+        });
+
+        socket.on('single-student-muted-ui', (studentId) => {
+            studentMicStatus[studentId] = 'muted';
+            const btn = document.getElementById(`mic-${studentId}`);
+            if (btn) { btn.innerText = "Muted 🔇"; btn.className = "mic-control-btn mic-off"; }
+        });
+
+        socket.on('all-students-muted-ui', () => {
+            for (let userId in studentMicStatus) {
+                studentMicStatus[userId] = 'muted';
+                const btn = document.getElementById(`mic-${userId}`);
+                if (btn) { btn.innerText = "Muted 🔇"; btn.className = "mic-control-btn mic-off"; }
+            }
+        });
+
+        socket.on('all-students-unmuted-ui', () => {
+            for (let userId in studentMicStatus) {
+                studentMicStatus[userId] = 'unmuted';
+                const btn = document.getElementById(`mic-${userId}`);
+                if (btn) { btn.innerText = "Live 🎙️"; btn.className = "mic-control-btn mic-on"; }
+            }
+        });
+
+        socket.on('user-left', (userId) => {
+            if (activeSwappedStudentId === userId) {
+                resetMainDisplay();
+            }
+            
+            if (peerConnections[userId]) peerConnections[userId].close();
+            delete peerConnections[userId];
+            delete studentMicStatus[userId];
+            delete studentNames[userId];
+            const card = document.getElementById(`card-${userId}`);
+            if (card) card.remove();
+        });
+
+        function createPeerConnection(userId) {
+            const pc = new RTCPeerConnection(servers);
+            peerConnections[userId] = pc;
+            studentMicStatus[userId] = 'muted'; 
+            
+            const currentStream = isScreenSharing ? screenStream : localStream;
+            if (currentStream) {
+                currentStream.getVideoTracks().forEach(track => pc.addTrack(track, currentStream));
+            }
+            if (localStream) {
+                localStream.getAudioTracks().forEach(track => pc.addTrack(track, localStream));
+            }
+
+            pc.ontrack = (event) => {
+                let card = document.getElementById(`card-${userId}`);
+                const displayName = studentNames[userId] || `Student (${userId.substring(0,4)})`;
+                
+                if (!card) {
+                    const grid = document.getElementById('studentGrid');
+                    card = document.createElement('div');
+                    card.className = 'student-card';
+                    card.id = `card-${userId}`;
+                    
+                    const video = document.createElement('video');
+                    video.autoplay = true; 
+                    video.playsInline = true;
+                    video.srcObject = event.streams[0];
+
+                    const label = document.createElement('div');
+                    label.className = 'student-label';
+                    label.innerText = displayName;
+
+                    const micBtn = document.createElement('button');
+                    micBtn.className = 'mic-control-btn mic-off';
+                    micBtn.id = `mic-${userId}`;
+                    micBtn.innerText = "Muted 🔇";
+
+                    video.onclick = () => swapStudentToMain(userId);
+                    
+                    micBtn.onclick = (e) => {
+                        e.stopPropagation();
+                        if (studentMicStatus[userId] === 'muted') {
+                            socket.emit('allow-student', userId);
+                        } else {
+                            socket.emit('mute-student', userId);
+                        }
+                    };
+
+                    card.appendChild(video);
+                    card.appendChild(label);
+                    card.appendChild(micBtn);
+                    grid.appendChild(card);
+                } else {
+                    const video = card.querySelector('video');
+                    if (video && video.srcObject !== event.streams[0]) {
+                        video.srcObject = event.streams[0];
+                    }
+                }
+
+                if (event.track) {
+                    event.track.onunmute = () => {
+                        const video = card.querySelector('video');
+                        if (video) {
+                            video.play().catch(e => console.log("Auto-play resume error:", e));
+                        }
+                        if (activeSwappedStudentId === userId) {
+                            localVideo.play().catch(e => console.log("Main video play error:", e));
+                        }
+                    };
+                }
+            };
+
+            pc.onicecandidate = (event) => {
+                if (event.candidate) socket.emit('signal', { target: userId, signal: { candidate: event.candidate } });
+            };
+            return pc;
+        }
+        
+    </script>
+</body>
+</html>

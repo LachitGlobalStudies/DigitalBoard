@@ -1,0 +1,760 @@
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background: #1e1e1e;
+  color: #fff;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+
+/* Persistent WebRTC Classroom Overlay */
+#classroomContainer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 500;
+  display: none;
+  flex-direction: column;
+  background: #111214;
+}
+
+#classroomContainer.active {
+  display: flex;
+}
+
+/* Floating Return Button inside the Classroom View */
+#btnFloatingBackToBoard {
+  position: absolute;
+  bottom: 20px;
+  right: 25px;
+  z-index: 600;
+  background: #6f42c1;
+  color: #ffffff;
+  border: 1px solid #9a67ea;
+  border-radius: 8px;
+  padding: 10px 18px;
+  font-size: 14px;
+  font-weight: bold;
+  cursor: pointer;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.6);
+  transition: transform 0.2s, background 0.2s;
+}
+
+#btnFloatingBackToBoard:hover {
+  background: #59359a;
+  transform: translateY(-2px);
+}
+
+/* Toolbar */
+#toolbar {
+  height: 52px;
+  background: #252526;
+  border-bottom: 1px solid #3c3c3c;
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+  gap: 8px;
+  z-index: 20;
+  transition: all 0.2s ease;
+  overflow: hidden;
+}
+
+#toolbar.hidden {
+  height: 0 !important;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+  border-bottom: none !important;
+}
+
+.btn {
+  background: #333333;
+  color: #cccccc;
+  border: 1px solid #444;
+  padding: 6px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 13px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  user-select: none;
+}
+
+.btn:hover,
+.btn.active {
+  background: #0e639c;
+  color: #fff;
+  border-color: #1177bb;
+}
+
+.btn-group {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  border-right: 1px solid #444;
+  padding-right: 8px;
+}
+
+input[type="file"] {
+  display: none;
+}
+
+/* Layout */
+#mainContainer {
+  flex: 1;
+  display: flex;
+  position: relative;
+  overflow: hidden;
+  width: 100vw;
+  height: calc(100vh - 52px);
+}
+
+#workspace {
+  flex: 1;
+  position: relative;
+  background: #2a2d32;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+#workspace .canvas-container, 
+#workspace #whiteboard {
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/* Page Navigation Sidebar Drawer */
+#pageSidebar {
+  width: 220px;
+  background: #252526;
+  border-right: 1px solid #3c3c3c;
+  display: none;
+  flex-direction: column;
+  height: 100%;
+  z-index: 15;
+}
+
+#pageSidebarHeader {
+  padding: 10px;
+  font-size: 13px;
+  font-weight: bold;
+  border-bottom: 1px solid #3c3c3c;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+#pageListContainer {
+  flex: 1;
+  overflow-y: auto;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.page-card {
+  background: #1e1e1e;
+  border: 2px solid #3c3c3c;
+  border-radius: 6px;
+  padding: 8px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  transition: border-color 0.2s;
+}
+
+.page-card:hover {
+  border-color: #0e639c;
+}
+
+.page-card.active {
+  border-color: #007acc;
+  background: #2a2d2e;
+}
+
+.page-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+}
+
+.page-thumb-preview {
+  width: 100%;
+  height: 100px;
+  background: #ffffff;
+  border-radius: 4px;
+  object-fit: contain;
+  border: 1px solid #444;
+}
+
+/* Shapes Menu */
+#shapeDropdown {
+  display: none;
+  position: absolute;
+  top: 55px;
+  left: 270px;
+  background: #252526;
+  border: 1px solid #454545;
+  border-radius: 4px;
+  padding: 6px;
+  flex-direction: column;
+  gap: 4px;
+  z-index: 100;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+}
+
+#shapeDropdown button {
+  background: none;
+  border: none;
+  color: #ccc;
+  padding: 6px 12px;
+  text-align: left;
+  cursor: pointer;
+  border-radius: 3px;
+  font-size: 13px;
+}
+
+#shapeDropdown button:hover {
+  background: #094771;
+  color: #fff;
+}
+
+/* Floating Object Action Bar */
+#floatingMenu {
+  display: none;
+  position: absolute;
+  background: #222222;
+  border: 1px solid #555;
+  border-radius: 6px;
+  padding: 6px;
+  gap: 6px;
+  flex-direction: column;
+  z-index: 150;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.7);
+  pointer-events: auto;
+}
+
+#floatingMenu .btn {
+  font-size: 11px;
+  padding: 4px 8px;
+}
+
+/* Embedded Browser Modal */
+#browserModal {
+  display: none;
+  position: absolute;
+  top: 60px;
+  left: 50px;
+  width: 780px;
+  height: 520px;
+  min-width: 350px;
+  min-height: 250px;
+  background: #252526;
+  border: 1px solid #555;
+  border-radius: 6px;
+  flex-direction: column;
+  z-index: 200;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8);
+  resize: both;
+  overflow: hidden;
+}
+
+#browserHeader {
+  background: #333;
+  padding: 8px;
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  cursor: grab;
+  user-select: none;
+}
+
+#browserHeader:active {
+  cursor: grabbing;
+}
+
+#browserUrl {
+  flex: 1;
+  padding: 5px 8px;
+  background: #1e1e1e;
+  border: 1px solid #444;
+  color: #fff;
+  border-radius: 4px;
+}
+
+#browserFrame {
+  flex: 1;
+  border: none;
+  background: #fff;
+  width: 100%;
+  height: 100%;
+}
+
+/* Shortcuts Help Modal */
+#shortcutsModal {
+  display: none;
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.75);
+  z-index: 99999;
+  justify-content: center;
+  align-items: center;
+}
+
+.shortcuts-dialog {
+  background: #252526;
+  border: 1px solid #454545;
+  border-radius: 8px;
+  width: 540px;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8);
+  overflow: hidden;
+}
+
+.shortcuts-header {
+  background: #1e1e1e;
+  padding: 12px 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #3c3c3c;
+}
+
+.shortcuts-body {
+  padding: 16px;
+  overflow-y: auto;
+}
+
+.shortcut-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.shortcut-table th,
+.shortcut-table td {
+  padding: 8px 10px;
+  text-align: left;
+  border-bottom: 1px solid #3c3c3c;
+}
+
+.shortcut-table th {
+  color: #89b4fa;
+}
+
+kbd {
+  background: #333333;
+  border: 1px solid #555;
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-family: monospace;
+  font-size: 12px;
+  color: #fff;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+/* In-place Crop Action Bar */
+#inplaceCropBar {
+  position: absolute;
+  z-index: 160;
+  display: flex;
+  gap: 6px;
+  background: #222222;
+  border: 1px solid #555;
+  border-radius: 6px;
+  padding: 4px 8px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.7);
+}
+
+/* =========================================================
+   Classroom Interface Styles
+========================================================= */
+.welcome-container {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: linear-gradient(135deg, #0f172a, #1e3a8a, #2563eb);
+    z-index: 550;
+    transition: 0.4s ease;
+}
+
+.welcome-container.hide {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+}
+
+.welcome-card {
+    width: 90%;
+    max-width: 480px;
+    padding: 45px 35px;
+    text-align: center;
+    border-radius: 20px;
+    background: rgba(255, 255, 255, .12);
+    backdrop-filter: blur(18px);
+    border: 1px solid rgba(255, 255, 255, .18);
+    box-shadow: 0 20px 45px rgba(0, 0, 0, .4);
+    color: #fff;
+}
+
+.welcome-icon { font-size: 60px; margin-bottom: 15px; }
+.welcome-card h1 { margin: 0; font-size: 22px; font-weight: 400; }
+.welcome-card h2 { margin: 10px 0; font-size: 34px; color: #fff; font-weight: 700; }
+.welcome-card p { color: #dbeafe; margin: 20px 0 30px; line-height: 1.6; }
+.welcome-card .controls { display: flex; flex-direction: column; gap: 15px; }
+.welcome-card .controls input {
+    padding: 15px;
+    border: none;
+    border-radius: 12px;
+    font-size: 16px;
+    outline: none;
+    width: 100%;
+    color: #000;
+}
+.welcome-card .controls button {
+    padding: 15px;
+    border: none;
+    border-radius: 12px;
+    background: #22c55e;
+    color: #fff;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: .3s;
+    width: 100%;
+}
+.welcome-card .controls button:hover { background: #16a34a; transform: translateY(-2px); }
+
+.tools-bar { 
+    padding: 10px; 
+    background: #1a1c20; 
+    border-bottom: 1px solid #2a2d32; 
+    position: relative; 
+    flex-shrink: 0;
+}
+
+.sidebar .controls {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 8px;
+    width: 100%;
+}
+
+.sidebar .controls button { 
+    width: 100%;
+    height: 42px;
+    padding: 0 10px; 
+    font-size: 13px; 
+    border: none; 
+    border-radius: 6px; 
+    background: #2ea44f; 
+    color: white; 
+    cursor: pointer; 
+    font-weight: bold; 
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+#shareBoardOnlyBtn { background: #2ea44f; }
+#shareBtn { background: #007fff; }
+#muteAllBtn { background: #ea4335; }
+#unmuteAllBtn { background: #2ea44f; }
+#youtubeStreamBtn { background: #ff0000; color: white; }
+#masterChatBtn { background: #ff9800; color: #000; }
+
+.pending-requests-box {
+    display: none;
+    flex-direction: column;
+    gap: 6px;
+    background: #202328;
+    border: 1px solid #3d424d;
+    border-radius: 6px;
+    padding: 8px;
+    margin-top: 5px;
+    flex-shrink: 0;
+}
+.pending-requests-title {
+    font-size: 11px;
+    font-weight: bold;
+    color: #ff9800;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+.pending-badge {
+    background: #ea4335;
+    color: #fff;
+    padding: 1px 6px;
+    border-radius: 10px;
+    font-size: 10px;
+}
+.pending-list-items {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    max-height: 180px;
+    overflow-y: auto;
+}
+.pending-item {
+    background: #141518;
+    border: 1px solid #2d3139;
+    border-radius: 6px;
+    padding: 6px;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+.pending-item-name {
+    font-size: 12px;
+    font-weight: bold;
+    color: #dbeafe;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.pending-actions { display: flex; gap: 5px; }
+.pending-actions button {
+    flex: 1;
+    height: 28px !important;
+    font-size: 11px !important;
+    padding: 0 !important;
+    border-radius: 4px !important;
+}
+.btn-accept { background: #2ea44f !important; }
+.btn-reject { background: #ea4335 !important; }
+
+.meeting-container { 
+    display: flex; 
+    flex: 1; 
+    height: 100%; 
+    overflow: hidden; 
+    position: relative; 
+}
+
+.sidebar { 
+    width: 230px; 
+    background: #161719; 
+    border-right: 1px solid #2a2d32; 
+    display: flex; 
+    flex-direction: column; 
+    gap: 8px; 
+    padding: 10px; 
+    height: 100%; 
+    overflow-y: auto; 
+    flex-shrink: 0;
+}
+
+.sidebar::-webkit-scrollbar { width: 6px; }
+.sidebar::-webkit-scrollbar-thumb { background: #90f169; border-radius: 4px; }
+.sidebar::-webkit-scrollbar-track { background: #ffffff; }
+
+.studentgrid { 
+    flex: 1; 
+    overflow-y: auto; 
+    padding: 5px; 
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    height: 100%;
+}
+
+.student-card { 
+    position: relative; 
+    width: 100%; 
+    background: #222; 
+    border-radius: 8px; 
+    border: 2px solid #3e424b; 
+    overflow: hidden; 
+    flex-shrink: 0; 
+    cursor: pointer;
+}
+
+.student-card video { 
+    width: 100%; 
+    height: auto;
+    aspect-ratio: 4/3; 
+    display: block;
+    object-fit: cover;
+}
+
+.student-label { 
+    position: absolute; 
+    bottom: 5px; 
+    left: 5px; 
+    background: rgba(0,0,0,0.6); 
+    padding: 2px 6px; 
+    font-size: 11px; 
+    border-radius: 4px; 
+    max-width: 65%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.cam-switch-btn {
+    background: rgba(0, 0, 0, 0.7);
+    color: #fff;
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    padding: 8px 14px;
+    border-radius: 20px;
+    font-size: 14px;
+    font-weight: bold;
+    cursor: pointer;
+    z-index: 50;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: background 0.2s;
+}
+.cam-switch-btn:hover { background: rgba(0, 127, 255, 0.8); }
+
+.main-display-label {
+    position: absolute;
+    bottom: 15px;
+    left: 15px;
+    background: rgba(0, 0, 0, 0.7);
+    color: #fff;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: bold;
+    z-index: 10;
+    max-width: 80%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.student-card.swapped-teacher { border-color: #ff9800; }
+
+.mic-control-btn { 
+    position: absolute; 
+    top: 5px; 
+    right: 5px; 
+    border: none; 
+    padding: 6px 12px; 
+    font-size: 12px; 
+    font-weight: bold; 
+    border-radius: 4px; 
+    cursor: pointer; 
+    color: white; 
+    transition: 0.2s; 
+    z-index: 20; 
+}
+
+.mic-off { background: #ea4335; } 
+.mic-on { background: #2ea44f; }  
+.hand-raised { background: #ff9800; color: #000; animation: blink 1s infinite; box-shadow: 0 0 10px #ff9800; }
+
+@keyframes blink { 50% { opacity: 0.4; } }
+
+.main-display { 
+    flex: 1; 
+    display: flex; 
+    justify-content: center; 
+    align-items: center; 
+    background: #0e0f11; 
+    padding: 2px; 
+    position: relative; 
+    overflow: hidden; 
+}
+
+.main-display video { 
+    width: 100%; 
+    height: 100%; 
+    object-fit: fill; 
+    background: #000; 
+    border-radius: 12px; 
+}
+
+#participantCounter.counter-header {
+    position: absolute; 
+    top: 15px;          
+    left: 15px;         
+    z-index: 10;        
+    width: 50px;        
+    height: 50px;       
+    background-color: rgba(255, 255, 255, 0.9); 
+    border-radius: 50%; 
+    display: none;
+    justify-content: center;
+    align-items: center;
+    color: rgb(255, 0, 0);
+    font-size: 24px;
+    font-weight: bold;
+    overflow: hidden;
+    text-align: center;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.5);
+}
+    
+.mirror { transform: scaleX(-1); }
+
+.chat-panel { 
+    position: absolute !important;
+    right: 20px !important;
+    bottom: 70px !important;
+    width: 0 !important;
+    height: 0 !important;
+    opacity: 0;
+    background: rgba(22, 23, 25, 0.95) !important;
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 10px;
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.7);
+    display: flex; 
+    flex-direction: column; 
+    transition: all 0.3s ease; 
+    overflow: hidden; 
+    z-index: 99999 !important; 
+}
+
+.chat-panel.open { 
+    width: 320px !important; 
+    height: 400px !important;
+    max-height: 70vh !important;
+    opacity: 1;
+}
+
+.chat-header { padding: 15px; background: #1a1c20; font-weight: bold; text-align: center; border-bottom: 1px solid #2a2d32; color: #ff9800; }
+.chat-messages { flex: 1; padding: 15px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
+.msg-block { padding: 8px 12px; border-radius: 6px; max-width: 85%; font-size: 13px; line-height: 1.4; word-break: break-all; }
+.msg-me { background: #007fff; color: #fff; align-self: flex-end; }
+.msg-other { background: #2a2d32; color: #fff; align-self: flex-start; }
+.chat-input-area { padding: 10px; background: #1a1c20; border-top: 1px solid #2a2d32; display: flex; flex-direction: column; gap: 8px; }
+.chat-row { display: flex; gap: 5px; }
+.chat-input-area input[type="text"] { flex: 1; padding: 8px; background: #222; border: 1px solid #3a3f47; border-radius: 4px; color: #fff; outline: none; }
+.chat-input-area button { padding: 8px 15px; background: #2ea44f; border: none; color: #fff; font-weight: bold; border-radius: 4px; cursor: pointer; }
+.file-label { display: inline-block; background: #444; text-align: center; padding: 5px; font-size: 11px; border-radius: 4px; cursor: pointer; font-weight: bold; }
+.file-link { color: #ff9800; text-decoration: underline; display: block; font-weight: bold; margin-top: 4px; }

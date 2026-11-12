@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Digital Whiteboard Pro & Classroom</title>
+  <!-- External Libraries -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.1/fabric.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script>
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  </script>
+  <script src="https://webrtc-project-k0jx.onrender.com/socket.io/socket.io.js"></script>
+  <!-- Custom Stylesheet -->
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- Persistent Classroom Overlay -->
+  <div id="classroomContainer">
+    <button id="btnFloatingBackToBoard" title="Switch back to Whiteboard (F2)">
+      🎨 Back to Whiteboard (F2)
+    </button>
+    
+    <!-- 1. Welcome Container -->
+    <div class="welcome-container" id="welcomeScreen">
+        <div class="welcome-card">
+            <div class="welcome-icon">🎓</div>
+            <h1>Welcome to</h1>
+            <h2>Lachit Global Studies</h2>
+            <p>Create your live class and start teaching with your students in real time.</p>
+            <div class="controls">
+                <input type="text" id="customRoomIdInput" placeholder="Create Room ID" style="text-align: center;">
+                <button id="createBtn">Create Class </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. Main Meeting Layout full -->
+    <div class="meeting-container" id="meetingContainer" style="display: none;">
+        <div class="sidebar">
+            <div class="tools-bar">
+                <div class="controls">
+                    <button id="shareBoardOnlyBtn" style="display: none;">Share WhiteBoard Only 🖥️</button>
+                    <button id="shareBtn" style="display: none;">Share Screen 🖥️</button>
+                    <button id="youtubeStreamBtn" style="display: none;">Stream YouTube 🎥</button>
+                    <button id="muteAllBtn" style="display: none;">Mute All 🎙️❌</button>
+                    <button id="unmuteAllBtn" style="display: none;">Unmute All 🎙️✅</button>
+                    <button id="masterChatBtn" style="display: none;">Chat Board 💬</button>
+                </div>
+            </div>
+
+            <div class="pending-requests-box" id="pendingBox">
+                <div class="pending-requests-title">
+                    <span>Pending Requests</span>
+                    <span class="pending-badge" id="pendingBadge">0</span>
+                </div>
+                <div class="pending-list-items" id="pendingListItems"></div>
+            </div>
+
+            <div class="studentgrid" id="studentGrid"></div>
+        </div>
+
+        <div class="main-display" id="mainArea">
+            <div id="participantCounter" class="counter-header">0</div>
+            <video id="localVideo" autoplay playsinline class="mirror"></video>
+            
+            <div class="cam-controls-overlay" style="position: absolute; top: 15px; right: 15px; display: flex; gap: 8px; z-index: 50;">
+              <!-- নতুন স্ন্যাপশট বাটন -->
+                <button id="btnSnapStudent" class="cam-switch-btn" style="display: none; background: #2ea44f;" title="Capture Student and Add to Whiteboard">
+                  📸 Snap to Board
+                </button>
+                <button id="cameraMirror" class="cam-switch-btn" style="display: none;">🪞 Mirror</button>
+                <button id="toggleAudioBtn" class="cam-switch-btn" style="display: none;">🎙️ Mute Audio</button>
+                <button id="toggleVideoBtn" class="cam-switch-btn" style="display: none;">📹 Turn Off Video</button>
+                <button id="camSwitchBtn" class="cam-switch-btn" style="display: none;">📷 My Camera</button>
+                <button id="studentCamSwitchBtn" class="cam-switch-btn" style="display: none; background: #ff9800; color: #000;">📷 Student's Camera</button>
+            </div>
+
+            <div id="mainDisplayLabel" class="main-display-label" style="display: none;">Teacher (You)</div>
+        </div>
+
+        <div class="chat-panel" id="chatPanel">
+            <div class="chat-header">Classroom Sync Chat (Live)</div>
+            <div class="chat-messages" id="chatWindow"></div>
+            <div class="chat-input-area">
+                <div class="chat-row">
+                    <input type="text" id="msgInput" placeholder="Type a message...">
+                    <button id="sendMsgBtn">Send</button>
+                </div>
+                <label class="file-label">
+                    📁 Share File / Notes (PDF, Image)
+                    <input type="file" id="fileInput" style="display: none;">
+                </label>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stream Key Modal -->
+    <div id="streamKeyModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.75); z-index:99999; justify-content:center; align-items:center;">
+      <div style="background:#222; padding:20px; border-radius:10px; width:90%; max-width:400px; display:flex; flex-direction:column; gap:12px; border:1px solid #444;">
+        <h3 style="margin:0; font-size:16px;">Enter YouTube Stream Key</h3>
+        <input type="text" id="streamKeyInput" placeholder="Paste your stream key here..." style="padding:10px; border-radius:6px; border:1px solid #555; background:#111; color:#fff; outline:none;">
+        <div style="display:flex; justify-content:flex-end; gap:8px;">
+          <button id="cancelStreamBtn" style="padding:8px 14px; background:#555; border:none; color:#fff; border-radius:4px; cursor:pointer;">Cancel</button>
+          <button id="confirmStreamBtn" style="padding:8px 14px; background:#ff0000; border:none; color:#fff; font-weight:bold; border-radius:4px; cursor:pointer;">Start Streaming</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Whiteboard Top Toolbar -->
+  <div id="toolbar">
+    <div class="btn-group">
+      <button class="btn" id="btnUndo" title="Undo (Ctrl+Z)">↩ Undo</button>
+      <button class="btn" id="btnRedo" title="Redo (Ctrl+Y)">↪ Redo</button>
+    </div>
+
+    <div class="btn-group">
+      <button class="btn" id="btnToggleClassroom" style="background: #238636; font-weight: bold;" title="Open / Hide Classroom (F2)">
+        📹 Classroom (F2)
+      </button>
+      <button class="btn active" id="btnSelect" title="Select (V)">Select</button>
+      <button class="btn" id="btnPen" title="Pen (P)">Pen</button>
+      <button class="btn" id="btnEraser" title="Eraser (E)">Eraser</button>
+      <button class="btn" id="btnShapes">Shapes ▾</button>
+      
+      <label class="btn" style="padding: 3px 6px; gap: 4px;" title="Pen Color (C)">
+        ✏ Color:
+        <input type="color" id="colorPicker" value="#00ff00" style="cursor: pointer; border: none; background: transparent; width: 22px; height: 22px;">
+      </label>
+      <input type="range" id="sizePicker" min="1" max="40" value="4" style="width: 70px;" title="Pen Size ([ / ])">
+
+      <label class="btn" style="padding: 3px 6px; gap: 4px;" title="Canvas Background Color (Shift+B)">
+        🎨 Canvas BG:
+        <input type="color" id="bgColorPicker" value="#ffffff" style="cursor: pointer; border: none; background: transparent; width: 22px; height: 22px;">
+      </label>
+    </div>
+
+    <div id="shapeDropdown">
+      <button data-shape="rect">Rectangle</button>
+      <button data-shape="circle">Circle</button>
+      <button data-shape="triangle">Triangle</button>
+      <button data-shape="line">Straight Line</button>
+    </div>
+
+    <div class="btn-group">
+      <label class="btn">
+        Import Image
+        <input type="file" id="imgUpload" accept="image/*">
+      </label>
+      <label class="btn">
+        Import PDF
+        <input type="file" id="pdfUpload" accept="application/pdf">
+      </label>
+      <button class="btn" id="btnOpenBrowser">Web Browser</button>
+    </div>
+
+    <div class="btn-group" style="margin-left: auto;">
+      <button class="btn" id="btnPrevPage" title="Previous Page (Left Arrow)">◀ Prev</button>
+      <button class="btn" id="pageIndicator" title="Toggle Pages Overview (O or Tab)" style="background:#0e639c; color:#fff; font-weight:bold; min-width:95px; justify-content:center;">
+        📄 Page 1 / 1
+      </button>
+      <button class="btn" id="btnNextPage" title="Next Page (Right Arrow)">Next ▶</button>
+    </div>
+  </div>
+
+  <div id="mainContainer">
+    <div id="pageSidebar">
+      <div id="pageSidebarHeader">
+        <span>Pages Overview</span>
+        <button class="btn" id="btnCloseSidebar" style="padding:2px 6px;">✖</button>
+      </div>
+      <div id="pageListContainer"></div>
+    </div>
+
+    <div id="workspace">
+      <canvas id="whiteboard"></canvas>
+
+      <div id="floatingMenu">
+        <button class="btn" id="btnDuplicateObj">📋 Duplicate</button>
+        <button class="btn" id="btnCropImg" style="display:none;">✂ Crop</button>
+        <button class="btn" id="btnDeleteObj" style="background:#a12626;">🗑 Delete</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="browserModal">
+    <div id="browserHeader">
+      <span style="font-size: 14px; margin-right: 4px;">🌐</span>
+      <input type="text" id="browserUrl" value="https://www.google.com" placeholder="Search Google or type a URL...">
+      <button class="btn" id="btnGoBrowser">Go</button>
+      <button class="btn" id="btnCaptureBrowser" style="background:#238636;">📸 Capture & Add</button>
+      <button class="btn" id="btnCloseBrowser">✖</button>
+    </div>
+    <webview id="browserFrame" src="https://www.google.com" allowpopups></webview>
+  </div>
+
+  <!-- Keyboard Shortcuts Help Modal -->
+  <div id="shortcutsModal">
+    <div class="shortcuts-dialog">
+      <div class="shortcuts-header">
+        <h3 style="margin: 0; font-size: 15px; color: #fff;">⌨ Keyboard Shortcuts</h3>
+        <button class="btn" id="btnCloseShortcuts" style="padding: 2px 8px;">✖</button>
+      </div>
+      <div class="shortcuts-body">
+        <table class="shortcut-table">
+          <thead>
+            <tr>
+              <th>Shortcut</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td><kbd>V</kbd></td><td>Select Tool</td></tr>
+            <tr><td><kbd>P</kbd> or <kbd>B</kbd></td><td>Pen / Brush Tool</td></tr>
+            <tr><td><kbd>M</kbd></td><td>Highlighter Tool</td></tr>
+            <tr><td><kbd>E</kbd></td><td>Eraser Tool</td></tr>
+            <tr><td><kbd>C</kbd></td><td>Open Pen Color Picker</td></tr>
+            <tr><td><kbd>Shift</kbd> + <kbd>B</kbd></td><td>Open Canvas Background Color Picker</td></tr>
+            <tr><td><kbd>O</kbd> or <kbd>Tab</kbd></td><td>Toggle Pages Overview (Sidebar)</td></tr>
+            <tr><td><kbd>[ or -</kbd> / <kbd>] or +</kbd></td><td>Decrease / Increase Brush Size</td></tr>
+            <tr><td><kbd>Ctrl</kbd> + <kbd>Z</kbd></td><td>Undo</td></tr>
+            <tr><td><kbd>Ctrl</kbd> + <kbd>Y</kbd></td><td>Redo</td></tr>
+            <tr><td><kbd>Ctrl</kbd> + <kbd>I</kbd></td><td>Import Image</td></tr>
+            <tr><td><kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>P</kbd></td><td>Import PDF</td></tr>
+            <tr><td><kbd>W</kbd> or <kbd>Ctrl</kbd> + <kbd>W</kbd></td><td>Open Web Browser</td></tr>
+            <tr><td><kbd>Ctrl</kbd> + <kbd>D</kbd></td><td>Duplicate Selected Object</td></tr>
+            <tr><td><kbd>Del</kbd> / <kbd>Backspace</kbd></td><td>Delete Selected Object</td></tr>
+            <tr><td><kbd>Ctrl</kbd> + <kbd>H</kbd> / <kbd>H</kbd></td><td>Toggle Top Toolbar</td></tr>
+            <tr><td><kbd>→</kbd> / <kbd>←</kbd></td><td>Next / Previous Page</td></tr>
+            <tr><td><kbd>Ctrl</kbd> + <kbd>→</kbd></td><td>Insert Page After Current</td></tr>
+            <tr><td><kbd>F1</kbd></td><td>Open Keyboard Shortcuts Help</td></tr>
+            <tr><td><kbd>F2</kbd></td><td>Toggle Classroom Drawer</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Custom Script -->
+  <script src="script.js"></script>
+</body>
+</html>

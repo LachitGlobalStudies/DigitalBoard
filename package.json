@@ -1,0 +1,53 @@
+{
+  "name": "digitalboard",
+  "version": "1.0.0",
+  "description": "Digital Whiteboard Desktop App",
+  "main": "main.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "electron .",
+    "build:win": "electron-builder --win",
+    "build:linux": "electron-builder --linux deb",
+    "build:all": "electron-builder --win --linux"
+  },
+  "keywords": [],
+  "author": "Imran Hussain",
+  "license": "ISC",
+  "devDependencies": {
+    "electron": "^30.5.1",
+    "electron-builder": "^24.13.3"
+  },
+  "dependencies": {
+    "socket.io-client": "^4.8.4"
+  },
+  "build": {
+    "appId": "com.digitalboard.app",
+    "productName": "DigitalBoard",
+    "directories": {
+      "output": "dist"
+    },
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "cscLink": null
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
+    },
+    "linux": {
+      "target": [
+        "deb"
+      ],
+      "category": "Graphics"
+    }
+  }
+}
