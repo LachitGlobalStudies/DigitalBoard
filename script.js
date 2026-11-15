@@ -286,6 +286,7 @@ const ClearEraserBrush = fabric.util.createClass(fabric.BaseBrush, {
 });
 
 
+
 colorPicker.addEventListener('input', (e) => {
   if (canvas.isDrawingMode && !document.getElementById('btnEraser').classList.contains('active')) {
     canvas.freeDrawingBrush.color = e.target.value;
