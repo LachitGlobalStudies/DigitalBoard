@@ -108,60 +108,98 @@
   </div>
 
   <!-- Whiteboard Top Toolbar -->
-  <div id="toolbar">
-    <div class="btn-group">
-      <button class="btn" id="btnUndo" title="Undo (Ctrl+Z)">↩ Undo</button>
-      <button class="btn" id="btnRedo" title="Redo (Ctrl+Y)">↪ Redo</button>
-    </div>
+          <!-- Whiteboard Top Toolbar -->
+            <div id="toolbar">
+              <div class="btn-group">
+                <button class="btn icon-btn" id="btnUndo" title="Undo (Ctrl+Z)">
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"/></svg>
+                </button>
+                <button class="btn icon-btn" id="btnRedo" title="Redo (Ctrl+Y)">
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 7v6h-6"/><path d="M3 17a9 9 0 0 1 9-9 9 9 0 0 1 6 2.3l3 2.7"/></svg>
+                </button>
+              </div>
 
-    <div class="btn-group">
-      <button class="btn" id="btnToggleClassroom" style="background: #238636; font-weight: bold;" title="Open / Hide Classroom (F2)">
-        📹 Classroom (F2)
-      </button>
-      <button class="btn active" id="btnSelect" title="Select (V)">Select</button>
-      <button class="btn" id="btnPen" title="Pen (P)">Pen</button>
-      <button class="btn" id="btnEraser" title="Eraser (E)">Eraser</button>
-      <button class="btn" id="btnShapes">Shapes ▾</button>
-      
-      <label class="btn" style="padding: 3px 6px; gap: 4px;" title="Pen Color (C)">
-        ✏ Color:
-        <input type="color" id="colorPicker" value="#00ff00" style="cursor: pointer; border: none; background: transparent; width: 22px; height: 22px;">
-      </label>
-      <input type="range" id="sizePicker" min="1" max="40" value="4" style="width: 70px;" title="Pen Size ([ / ])">
+              <div class="btn-group">
+                <button class="btn icon-btn" id="btnToggleClassroom" style="background: #238636; color: #fff;" title="Open / Hide Classroom (F2)">
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
+                </button>
+                
+                <button class="btn icon-btn" id="btnSelect" title="Select (V)">
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 3 7.07 16.97 2.51-7.39 7.39-2.51L3 3z"/><path d="m13 13 6 6"/></svg>
+                </button>
+                
+                <button class="btn icon-btn active" id="btnPen" title="Pen (P)">
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
+                </button>
+                
+                <button class="btn icon-btn" id="btnEraser" title="Background Eraser (E)">
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m7 21-4.3-4.3c-1-1-1-2.5 0-3.4l9.6-9.6c1-1 2.5-1 3.4 0l5.6 5.6c1 1 1 2.5 0 3.4L13 21"/><path d="M22 21H7"/><path d="m5 11 9 9"/></svg>
+                </button>
 
-      <label class="btn" style="padding: 3px 6px; gap: 4px;" title="Canvas Background Color (Shift+B)">
-        🎨 Canvas BG:
-        <input type="color" id="bgColorPicker" value="#ffffff" style="cursor: pointer; border: none; background: transparent; width: 22px; height: 22px;">
-      </label>
-    </div>
+                <button class="btn icon-btn" id="btnClearEraser" title="Ink-Only Clear Eraser (PorterDuff destination-out) (Shift+E)">
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="3 2"><path d="m7 21-4.3-4.3c-1-1-1-2.5 0-3.4l9.6-9.6c1-1 2.5-1 3.4 0l5.6 5.6c1 1 1 2.5 0 3.4L13 21"/><path d="M22 21H7"/></svg>
+                </button>
+                
+                <button class="btn icon-btn" id="btnShapes" title="Shapes">
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><circle cx="17.5" cy="17.5" r="3.5"/><polygon points="17.5 3 21 9 14 9 17.5 3"/><line x1="3" y1="21" x2="10" y2="14"/></svg>
+                  <span style="font-size: 10px;">▾</span>
+                </button>
+                
+                <label class="btn icon-btn" title="Pen Color (C)">
+                  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="13.5" cy="6.5" r=".5" fill="currentColor"/><circle cx="17.5" cy="10.5" r=".5" fill="currentColor"/><circle cx="8.5" cy="7.5" r=".5" fill="currentColor"/><circle cx="6.5" cy="12.5" r=".5" fill="currentColor"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"/></svg>
+                  <input type="color" id="colorPicker" value="#00ff00" style="cursor: pointer; border: none; background: transparent; width: 20px; height: 20px;">
+                </label>
 
-    <div id="shapeDropdown">
-      <button data-shape="rect">Rectangle</button>
-      <button data-shape="circle">Circle</button>
-      <button data-shape="triangle">Triangle</button>
-      <button data-shape="line">Straight Line</button>
-    </div>
+                <input type="range" id="sizePicker" min="1" max="40" value="4" style="width: 70px;" title="Pen Size ([ / ])">
 
-    <div class="btn-group">
-      <label class="btn">
-        Import Image
-        <input type="file" id="imgUpload" accept="image/*">
-      </label>
-      <label class="btn">
-        Import PDF
-        <input type="file" id="pdfUpload" accept="application/pdf">
-      </label>
-      <button class="btn" id="btnOpenBrowser">Web Browser</button>
-    </div>
+                <label class="btn icon-btn" title="Canvas Background Color (Shift+B)">
+                  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m19 11-8-8-8.6 8.6a2 2 0 0 0 0 2.8l5.2 5.2c.8.8 2 .8 2.8 0L19 11Z"/><path d="m5 2 5 5"/><path d="M2 13h15"/><path d="M22 20a2 2 0 1 1-4 0c0-1.6 1.7-2.4 2-4 .3 1.6 2 2.4 2 4Z"/></svg>
+                  <input type="color" id="bgColorPicker" value="#ffffff" style="cursor: pointer; border: none; background: transparent; width: 20px; height: 20px;">
+                </label>
+              </div>
 
-    <div class="btn-group" style="margin-left: auto;">
-      <button class="btn" id="btnPrevPage" title="Previous Page (Left Arrow)">◀ Prev</button>
-      <button class="btn" id="pageIndicator" title="Toggle Pages Overview (O or Tab)" style="background:#0e639c; color:#fff; font-weight:bold; min-width:95px; justify-content:center;">
-        📄 Page 1 / 1
-      </button>
-      <button class="btn" id="btnNextPage" title="Next Page (Right Arrow)">Next ▶</button>
-    </div>
-  </div>
+              <div id="shapeDropdown">
+                <button data-shape="rect" title="Rectangle">
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="2"/></svg>
+                </button>
+                <button data-shape="circle" title="Circle">
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/></svg>
+                </button>
+                <button data-shape="triangle" title="Triangle">
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 4 21 20 3 20"/></svg>
+                </button>
+                <button data-shape="line" title="Straight Line">
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" y1="20" x2="20" y2="4"/></svg>
+                </button>
+              </div>
+
+              <div class="btn-group">
+                <label class="btn icon-btn" title="Import Image (Ctrl+I)">
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                  <input type="file" id="imgUpload" accept="image/*">
+                </label>
+                <label class="btn icon-btn" title="Import PDF (Ctrl+Shift+P)">
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+                  <input type="file" id="pdfUpload" accept="application/pdf">
+                </label>
+                <button class="btn icon-btn" id="btnOpenBrowser" title="Web Browser (W)">
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+                </button>
+              </div>
+
+              <div class="btn-group" style="margin-left: auto; border-right: none; padding-right: 0;">
+                <button class="btn icon-btn" id="btnPrevPage" title="Previous Page (Left Arrow)">
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+                </button>
+                <button class="btn" id="pageIndicator" title="Toggle Pages Overview (O or Tab)" style="background:#0e639c; color:#fff; font-weight:bold; min-width:68px; justify-content:center; gap: 6px;">
+                  <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+                  <span id="pageCountText">1 / 1</span>
+                </button>
+                <button class="btn icon-btn" id="btnNextPage" title="Next Page (Right Arrow)">
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+                </button>
+              </div>
+            </div>
 
   <div id="mainContainer">
     <div id="pageSidebar">

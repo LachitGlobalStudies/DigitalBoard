@@ -204,36 +204,46 @@ input[type="file"] {
 }
 
 /* Shapes Menu */
+.icon-btn {
+  padding: 6px 8px;
+  justify-content: center;
+  min-width: 34px;
+  height: 34px;
+}
+
+/* Shapes Menu */
 #shapeDropdown {
   display: none;
   position: absolute;
-  top: 55px;
-  left: 270px;
+  top: 52px;
+  left: 260px;
   background: #252526;
   border: 1px solid #454545;
   border-radius: 4px;
   padding: 6px;
-  flex-direction: column;
-  gap: 4px;
+  flex-direction: row;
+  gap: 6px;
   z-index: 100;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
 }
 
 #shapeDropdown button {
-  background: none;
-  border: none;
+  background: #333;
+  border: 1px solid #444;
   color: #ccc;
-  padding: 6px 12px;
-  text-align: left;
+  padding: 6px 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   cursor: pointer;
-  border-radius: 3px;
-  font-size: 13px;
+  border-radius: 4px;
 }
 
 #shapeDropdown button:hover {
   background: #094771;
   color: #fff;
 }
+
 
 /* Floating Object Action Bar */
 #floatingMenu {

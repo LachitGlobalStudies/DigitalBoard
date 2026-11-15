@@ -40,7 +40,7 @@ function recordState() {
   const curPage = pages[currentPageIndex];
   curPage.bgImage = canvas.backgroundImage ? canvas.backgroundImage.toDataURL() : null;
   curPage.bgColor = canvas.backgroundColor || '#ffffff';
-  curPage.json = canvas.toJSON(['backgroundImage']);
+  curPage.json = canvas.toJSON(['backgroundImage', 'globalCompositeOperation']);
   curPage.history.push(JSON.stringify(curPage.json));
   curPage.redoList = [];
 }
@@ -90,8 +90,13 @@ function toggleToolbar() {
 }
 ipcRenderer.on('toggle-toolbar-from-menu', toggleToolbar);
 
+// Custom Pen Cursor SVG (hotspot at 2, 22 = exact tip of the pen nib)
+const penCursorSvg = `url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='%23ffffff' stroke='%23000000' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'><path d='M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z'/></svg>") 2 22, auto`;
+
 function resetTools() {
   canvas.isDrawingMode = false;
+  // Reset cursor back to default crosshair so pen icon ONLY shows for Pen tool
+  canvas.freeDrawingCursor = 'crosshair';
   document.querySelectorAll('.btn-group .btn').forEach(b => b.classList.remove('active'));
   document.getElementById('shapeDropdown').style.display = 'none';
 }
@@ -105,6 +110,8 @@ document.getElementById('btnPen').addEventListener('click', function() {
   resetTools();
   this.classList.add('active');
   canvas.isDrawingMode = true;
+  // Apply pen cursor exclusively to Pen tool
+  canvas.freeDrawingCursor = penCursorSvg;
   canvas.freeDrawingBrush = new fabric.PencilBrush(canvas);
   canvas.freeDrawingBrush.color = colorPicker.value;
   canvas.freeDrawingBrush.width = parseInt(sizePicker.value, 10);
@@ -119,6 +126,166 @@ document.getElementById('btnEraser').addEventListener('click', function() {
   canvas.freeDrawingBrush.width = parseInt(sizePicker.value, 10) * 4;
 });
 
+document.getElementById('btnClearEraser').addEventListener('click', function() {
+  resetTools();
+  this.classList.add('active');
+  canvas.isDrawingMode = true;
+  const lassoEraser = new ClearEraserBrush(canvas);
+  lassoEraser.width = parseInt(sizePicker.value, 10) * 4;
+  canvas.freeDrawingBrush = lassoEraser;
+});
+
+document.getElementById('btnSelect').addEventListener('click', function() {
+  resetTools();
+  this.classList.add('active');
+});
+
+
+
+
+
+// =========================================================
+// PorterDuff (destination-out) Ink-Only Eraser Engine
+// =========================================================
+const inkBufferCanvas = document.createElement('canvas');
+const inkBufferCtx = inkBufferCanvas.getContext('2d');
+
+// Isolate drawing strokes from images/PDFs/shapes so destination-out only clears ink
+const originalRenderObjects = canvas._renderObjects.bind(canvas);
+canvas._renderObjects = function(ctx, objects) {
+  const baseObjects = [];
+  const inkObjects = [];
+
+  objects.forEach(obj => {
+    if (obj.type === 'path' || obj.globalCompositeOperation === 'destination-out') {
+      inkObjects.push(obj);
+    } else {
+      baseObjects.push(obj);
+    }
+  });
+
+  // 1. Render imported images, PDF pages, and shapes first
+  originalRenderObjects(ctx, baseObjects);
+
+  // 2. Render drawing strokes & destination-out paths on an offscreen layer
+  if (inkObjects.length > 0) {
+    if (inkBufferCanvas.width !== ctx.canvas.width || inkBufferCanvas.height !== ctx.canvas.height) {
+      inkBufferCanvas.width = ctx.canvas.width;
+      inkBufferCanvas.height = ctx.canvas.height;
+    }
+    inkBufferCtx.clearRect(0, 0, inkBufferCanvas.width, inkBufferCanvas.height);
+
+    inkBufferCtx.save();
+    const vpt = this.viewportTransform;
+    if (vpt) {
+      inkBufferCtx.transform(vpt[0], vpt[1], vpt[2], vpt[3], vpt[4], vpt[5]);
+    }
+    inkObjects.forEach(obj => obj.render(inkBufferCtx));
+    inkBufferCtx.restore();
+
+    ctx.save();
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.drawImage(inkBufferCanvas, 0, 0);
+    ctx.restore();
+  }
+};
+
+// =========================================================
+// Lasso Area Clear Eraser (Semi-Transparent Red + Dashed Outline + destination-out)
+// =========================================================
+const ClearEraserBrush = fabric.util.createClass(fabric.BaseBrush, {
+  initialize: function(canvas) {
+    this.canvas = canvas;
+    this._points = [];
+  },
+
+  onMouseDown: function(pointer, options) {
+    this._points = [pointer];
+    this._render();
+  },
+
+  onMouseMove: function(pointer, options) {
+    if (!this._points.length) return;
+    this._points.push(pointer);
+    this._render();
+  },
+
+  // 1. Draw semi-transparent red fill + red dashed outline from initial to final point
+  _render: function() {
+    const ctx = this.canvas.contextTop;
+    this.canvas.clearContext(ctx);
+    if (!this._points.length) return;
+
+    this._saveAndTransform(ctx);
+    ctx.beginPath();
+
+    if (this._points.length === 1) {
+      // Single point fallback circle
+      const p = this._points[0];
+      const r = Math.max(8, this.width / 2);
+      ctx.arc(p.x, p.y, r, 0, Math.PI * 2);
+    } else {
+      // Closed polygon connecting initial point -> path -> final point -> back to initial
+      ctx.moveTo(this._points[0].x, this._points[0].y);
+      for (let i = 1; i < this._points.length; i++) {
+        ctx.lineTo(this._points[i].x, this._points[i].y);
+      }
+      ctx.closePath();
+    }
+
+    // Semi-transparent red interior fill
+    ctx.fillStyle = 'rgba(255, 80, 80, 0.25)';
+    ctx.fill();
+
+    // Red dashed outline border
+    ctx.strokeStyle = '#ea4335';
+    ctx.lineWidth = 2;
+    ctx.setLineDash([6, 4]);
+    ctx.stroke();
+
+    ctx.restore();
+  },
+
+  // 2. On release, fill the enclosed polygon with destination-out on the ink layer
+  onMouseUp: function(options) {
+    this.canvas.clearContext(this.canvas.contextTop);
+    if (!this._points.length) return false;
+
+    let eraseObj;
+
+    if (this._points.length < 3) {
+      // Single click/tap: erase circular area at the point
+      const p = this._points[0];
+      const r = Math.max(8, this.width / 2);
+      eraseObj = new fabric.Circle({
+        left: p.x - r,
+        top: p.y - r,
+        radius: r,
+        fill: 'rgba(0,0,0,1)',
+        globalCompositeOperation: 'destination-out',
+        selectable: false,
+        evented: false
+      });
+    } else {
+      // Enclosed Lasso Polygon: erases initial, path, final, and full enclosed area
+      eraseObj = new fabric.Polygon(this._points, {
+        fill: 'rgba(0,0,0,1)',
+        stroke: 'rgba(0,0,0,1)',
+        strokeWidth: 1,
+        globalCompositeOperation: 'destination-out',
+        selectable: false,
+        evented: false
+      });
+    }
+
+    this.canvas.add(eraseObj);
+    this.canvas.renderAll();
+    this._points = [];
+    return false;
+  }
+});
+
+
 colorPicker.addEventListener('input', (e) => {
   if (canvas.isDrawingMode && !document.getElementById('btnEraser').classList.contains('active')) {
     canvas.freeDrawingBrush.color = e.target.value;
@@ -126,9 +293,12 @@ colorPicker.addEventListener('input', (e) => {
 });
 
 sizePicker.addEventListener('input', (e) => {
-  if (canvas.isDrawingMode) canvas.freeDrawingBrush.width = parseInt(e.target.value, 10);
+  if (canvas.isDrawingMode) {
+    const isAnyEraser = document.getElementById('btnEraser').classList.contains('active') ||
+                        document.getElementById('btnClearEraser').classList.contains('active');
+    canvas.freeDrawingBrush.width = parseInt(e.target.value, 10) * (isAnyEraser ? 4 : 1);
+  }
 });
-
 // Shapes Dropdown
 const shapeDropdown = document.getElementById('shapeDropdown');
 document.getElementById('btnShapes').addEventListener('click', () => {
@@ -137,7 +307,7 @@ document.getElementById('btnShapes').addEventListener('click', () => {
 
 shapeDropdown.querySelectorAll('button').forEach(btn => {
   btn.addEventListener('click', (e) => {
-    const type = e.target.getAttribute('data-shape');
+    const type = e.currentTarget.getAttribute('data-shape');
     let shape;
     const stroke = colorPicker.value;
     const strokeWidth = parseInt(sizePicker.value, 10);
@@ -409,7 +579,7 @@ const pageSidebar = document.getElementById('pageSidebar');
 const pageListContainer = document.getElementById('pageListContainer');
 
 function updatePageUI() {
-  document.getElementById('pageIndicator').innerText = `📄 Page ${currentPageIndex + 1} / ${pages.length}`;
+  document.getElementById('pageCountText').innerText = `${currentPageIndex + 1} / ${pages.length}`;
   renderSidebarList();
 }
 
@@ -417,7 +587,7 @@ function saveCurrentPage() {
   const curPage = pages[currentPageIndex];
   curPage.bgImage = canvas.backgroundImage ? canvas.backgroundImage.toDataURL() : curPage.bgImage;
   curPage.bgColor = canvas.backgroundColor || '#ffffff';
-  curPage.json = canvas.toJSON();
+  curPage.json = canvas.toJSON(['globalCompositeOperation']);
   curPage.thumbnail = canvas.toDataURL({ format: 'png', multiplier: 0.2 });
 }
 
@@ -1567,6 +1737,11 @@ window.addEventListener('keydown', (e) => {
     bgColorPicker.click();
     return;
   }
+  if (e.shiftKey && e.key.toLowerCase() === 'e') {
+    e.preventDefault();
+    document.getElementById('btnClearEraser').click();
+    return;
+  }
   if (e.key.toLowerCase() === 'o' || e.key === 'Tab') {
     e.preventDefault();
     togglePageSidebar();
@@ -1612,3 +1787,4 @@ window.addEventListener('keydown', (e) => {
 // Initial Setup
 recordState();
 updatePageUI();
+document.getElementById('btnPen').click();
