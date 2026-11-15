@@ -35,13 +35,19 @@ let pages = [{ bgImage: null, bgColor: '#ffffff', json: null, thumbnail: null, h
 let currentPageIndex = 0;
 let isHistoryLocked = false;
 
+const MAX_HISTORY_STEPS = 20;
+
 function recordState() {
   if (isHistoryLocked) return;
   const curPage = pages[currentPageIndex];
-  curPage.bgImage = canvas.backgroundImage ? canvas.backgroundImage.toDataURL() : null;
   curPage.bgColor = canvas.backgroundColor || '#ffffff';
-  curPage.json = canvas.toJSON(['backgroundImage', 'globalCompositeOperation']);
+  curPage.json = canvas.toJSON(['globalCompositeOperation']);
+  
   curPage.history.push(JSON.stringify(curPage.json));
+  // ২০টির বেশি হলে পুরোনো হিস্ট্রি ডিলিট করে RAM ফ্রি রাখা
+  if (curPage.history.length > MAX_HISTORY_STEPS) {
+    curPage.history.shift();
+  }
   curPage.redoList = [];
 }
 
@@ -924,7 +930,10 @@ function createDummyStream() {
 document.getElementById('createBtn').onclick = async function () {
   const roomId = document.getElementById('customRoomIdInput').value.trim();
   if (!roomId) return alert("Please Enter a room id");
-
+  if (!socket.connected) {
+    return alert("Server is waking up or disconnected. Please wait 5 seconds and try again.");
+  }
+  activeTeacherRoomId = roomId;
   try {
     localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
   } catch (err) {
@@ -980,7 +989,6 @@ document.getElementById('createBtn').onclick = async function () {
   cameraMirror.style.display = 'flex';
   resetOverlayTimeout();
 };
-
 
 // ==========================================
 // 3. Real-Time Composite Canvas Sharing Engine
@@ -1350,6 +1358,15 @@ socket.on('signal', async (data) => {
   }
 });
 
+
+let activeTeacherRoomId = null;
+
+// Socket রিকানেক্ট হলে অটোমেটিক টিচারকে রুমে ফিরিয়ে নেওয়া
+socket.on('connect', () => {
+  if (activeTeacherRoomId) {
+    socket.emit('join-room', { roomId: activeTeacherRoomId, role: 'teacher' });
+  }
+});
 // ==========================================
 // Video Swapping (Teacher & Student)
 // ==========================================
@@ -1506,71 +1523,79 @@ socket.on('all-students-unmuted-ui', () => {
             playJoinChime();
             showStudentNotification(name);
         });
-// notification for the raise hand
+// --- SHARED AUDIO CONTEXT (No Memory Leak) ---
+let sharedAudioCtx = null;
+function getAudioContext() {
+    if (!sharedAudioCtx) {
+        sharedAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    if (sharedAudioCtx.state === 'suspended') {
+        sharedAudioCtx.resume();
+    }
+    return sharedAudioCtx;
+}
 
+// --- NOTIFICATION & SOUND FOR HAND RAISE ---
 function playHandRaiseChime() {
-            try {
-                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-                const now = audioCtx.currentTime;
+    try {
+        const audioCtx = getAudioContext();
+        const now = audioCtx.currentTime;
 
-                const osc = audioCtx.createOscillator();
-                const gain = audioCtx.createGain();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
 
-                osc.type = 'triangle';
-                osc.frequency.setValueAtTime(523.25, now);        // C5
-                osc.frequency.setValueAtTime(659.25, now + 0.12); // E5
-                osc.frequency.setValueAtTime(783.99, now + 0.24); // G5
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(523.25, now);        // C5
+        osc.frequency.setValueAtTime(659.25, now + 0.12); // E5
+        osc.frequency.setValueAtTime(783.99, now + 0.24); // G5
 
-                gain.gain.setValueAtTime(0.25, now);
-                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+        gain.gain.setValueAtTime(0.25, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
 
-                osc.connect(gain);
-                gain.connect(audioCtx.destination);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
 
-                osc.start(now);
-                osc.stop(now + 0.5);
-            } catch (e) {
-                console.warn("Hand raise chime failed:", e);
-            }
-        }
+        osc.start(now);
+        osc.stop(now + 0.5);
+    } catch (e) {
+        console.warn("Hand raise chime failed:", e);
+    }
+}
 
-        function showHandRaiseNotification(studentName) {
-            if ("Notification" in window && Notification.permission === "granted") {
-                new Notification("✋ Hand Raised!", {
-                    body: `${studentName} raised their hand to ask a question.`,
-                    icon: "/favicon.ico"
-                });
-            }
-        }
+function showHandRaiseNotification(studentName) {
+    if ("Notification" in window && Notification.permission === "granted") {
+        new Notification("✋ Hand Raised!", {
+            body: `${studentName} raised their hand to ask a question.`,
+            icon: "/favicon.ico"
+        });
+    }
+}
 
+// --- NOTIFICATION & SOUND FOR STUDENT REQUESTS ---
+function playJoinChime() {
+    try {
+        const audioCtx = getAudioContext();
+        const now = audioCtx.currentTime;
 
-        // --- NOTIFICATION & SOUND FOR STUDENT REQUESTS ---
- function playJoinChime() {
-            try {
-                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-                const now = audioCtx.currentTime;
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
 
-                const osc = audioCtx.createOscillator();
-                const gain = audioCtx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(740, now);          // F#5
+        osc.frequency.setValueAtTime(880, now + 0.12);     // A5
 
-                osc.type = 'sine';
-                osc.frequency.setValueAtTime(740, now);          // F#5
-                osc.frequency.setValueAtTime(880, now + 0.12);     // A5
+        gain.gain.setValueAtTime(0.2, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
 
-                gain.gain.setValueAtTime(0.2, now);
-                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
 
-                osc.connect(gain);
-                gain.connect(audioCtx.destination);
-
-                osc.start(now);
-                osc.stop(now + 0.4);
-            } catch (e) {
-                console.warn("Audio chime failed:", e);
-            }
-        }
-
-
+        osc.start(now);
+        osc.stop(now + 0.4);
+    } catch (e) {
+        console.warn("Audio chime failed:", e);
+    }
+}
 // ==========================================
 // 6. Realtime Sync Chat & File Sharing
 // ==========================================
