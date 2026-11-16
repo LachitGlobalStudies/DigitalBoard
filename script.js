@@ -1504,36 +1504,6 @@ function cleanupStreaming() {
   if (mediaRecorder && mediaRecorder.state !== 'inactive') mediaRecorder.stop();
 }
 
-async function initiateCall(pc, userId) {
-  const offer = await pc.createOffer();
-  await pc.setLocalDescription(offer);
-  socket.emit('signal', { target: userId, signal: { offer } });
-}
-
-socket.on('start-call-with-student', ({ studentId, name }) => {
-  if (name) studentNames[studentId] = name;
-  let pc = peerConnections[studentId] || createPeerConnection(studentId);
-  initiateCall(pc, studentId);
-});
-
-socket.on('signal', async (data) => {
-  let pc = peerConnections[data.sender];
-  if (!pc) return;
-  if (data.signal.answer) await pc.setRemoteDescription(new RTCSessionDescription(data.signal.answer));
-  else if (data.signal.candidate) {
-    try { await pc.addIceCandidate(new RTCIceCandidate(data.signal.candidate)); } catch (e) {}
-  }
-});
-
-
-let activeTeacherRoomId = null;
-
-// Socket রিকানেক্ট হলে অটোমেটিক টিচারকে রুমে ফিরিয়ে নেওয়া
-socket.on('connect', () => {
-  if (activeTeacherRoomId) {
-    socket.emit('join-room', { roomId: activeTeacherRoomId, role: 'teacher' });
-  }
-});
 // ==========================================
 // Video Swapping (Teacher & Student)
 // ==========================================
