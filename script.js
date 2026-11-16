@@ -775,7 +775,10 @@ ipcRenderer.on('toggle-classroom-view', toggleClassroomView);
 
 // --- WebRTC & Socket Connection ---
 const socket = io("https://webrtc-project-k0jx.onrender.com", {
-  transports: ["websocket", "polling"]
+  transports: ["websocket", "polling"],
+  reconnection: true,
+  reconnectionAttempts: Infinity,
+  reconnectionDelay: 1000
 });
 
 let localStream;
@@ -787,14 +790,33 @@ let isBoardSharing = false;
 let isLiveStreaming = false;
 let isChatPanelOpen = false;
 let overlayTimeout;
+let activeTeacherRoomId = null;
+
 const peerConnections = {};
+const iceCandidateQueues = {}; // প্রতিটি স্টুডেন্টের জন্য আলাদা ICE Queue
 const studentMicStatus = {};
 const studentNames = {};
+
+// STUN + TURN Servers (Mobile Data & Strict NAT Fix)
 const servers = {
   iceServers: [
     { urls: 'stun:stun.l.google.com:19302' },
     { urls: 'stun:stun1.l.google.com:19302' },
-    { urls: 'stun:stun2.l.google.com:19302' }
+    {
+      urls: "turn:openrelay.metered.ca:80",
+      username: "openrelayproject",
+      credential: "openrelayproject"
+    },
+    {
+      urls: "turn:openrelay.metered.ca:443",
+      username: "openrelayproject",
+      credential: "openrelayproject"
+    },
+    {
+      urls: "turn:openrelay.metered.ca:443?transport=tcp",
+      username: "openrelayproject",
+      credential: "openrelayproject"
+    }
   ]
 };
 let currentCamFacingMode = "user";
@@ -1276,10 +1298,16 @@ studentCamSwitchBtn.onclick = () => {
 // 4. WebRTC Peer Connection & Media Sync
 // ==========================================
 function createPeerConnection(userId) {
+  if (peerConnections[userId]) {
+    peerConnections[userId].close();
+  }
+  iceCandidateQueues[userId] = [];
+
   const pc = new RTCPeerConnection(servers);
   peerConnections[userId] = pc;
   studentMicStatus[userId] = 'muted';
 
+  // বর্তমানে যেটা শেয়ার হচ্ছে (Whiteboard / Screen / Camera) সেটাই স্টুডেন্টকে পাঠানো
   const currentStream = isBoardSharing ? boardStream : (isScreenSharing ? screenStream : localStream);
   if (currentStream) {
     currentStream.getVideoTracks().forEach(track => pc.addTrack(track, currentStream));
@@ -1345,9 +1373,135 @@ function createPeerConnection(userId) {
   };
 
   pc.onicecandidate = (event) => {
-    if (event.candidate) socket.emit('signal', { target: userId, signal: { candidate: event.candidate } });
+    if (event.candidate) {
+      socket.emit('signal', { target: userId, signal: { candidate: event.candidate } });
+    }
   };
+
   return pc;
+}
+
+async function initiateCall(pc, userId) {
+  try {
+    const offer = await pc.createOffer();
+    await pc.setLocalDescription(offer);
+    socket.emit('signal', { target: userId, signal: { offer } });
+  } catch (err) {
+    console.error("Failed to initiate call with student:", err);
+  }
+}
+
+// স্টুডেন্ট জয়েন বা রিকানেক্ট করলে নতুন কল শুরু করা
+socket.on('start-call-with-student', ({ studentId, name }) => {
+  if (name) studentNames[studentId] = name;
+
+  // যদি এই স্টুডেন্ট আগে থেকে মেইন স্ক্রিনে সোয়াপ করা থাকে, তবে রিসেট করে নেওয়া
+  if (activeSwappedStudentId === studentId) {
+    resetMainDisplay();
+  }
+
+  // পুরোনো কানেকশন ও কার্ড পরিষ্কার করা (Reconnect-এর ক্ষেত্রে জরুরি)
+  if (peerConnections[studentId]) {
+    peerConnections[studentId].close();
+    delete peerConnections[studentId];
+  }
+  document.getElementById(`card-${studentId}`)?.remove();
+
+  const pc = createPeerConnection(studentId);
+  initiateCall(pc, studentId);
+});
+
+// WebRTC Signaling (ICE Candidate Queue সহ)
+socket.on('signal', async (data) => {
+  const pc = peerConnections[data.sender];
+  if (!pc) return;
+
+  try {
+    if (data.signal.answer) {
+      await pc.setRemoteDescription(new RTCSessionDescription(data.signal.answer));
+
+      // Answer সেট হওয়ার আগে আসা সব ICE Candidate প্রসেস করা
+      const queue = iceCandidateQueues[data.sender] || [];
+      while (queue.length > 0) {
+        const cand = queue.shift();
+        await pc.addIceCandidate(new RTCIceCandidate(cand)).catch(e => console.error(e));
+      }
+    } else if (data.signal.candidate) {
+      if (pc.remoteDescription && pc.remoteDescription.type) {
+        await pc.addIceCandidate(new RTCIceCandidate(data.signal.candidate));
+      } else {
+        if (!iceCandidateQueues[data.sender]) iceCandidateQueues[data.sender] = [];
+        iceCandidateQueues[data.sender].push(data.signal.candidate);
+      }
+    }
+  } catch (e) {
+    console.error("Signaling error:", e);
+  }
+});
+
+// Socket রিকানেক্ট হলে অটোমেটিক টিচারকে রুমে ফিরিয়ে নেওয়া
+socket.on('connect', () => {
+  if (activeTeacherRoomId) {
+    console.log("Teacher reconnected to room:", activeTeacherRoomId);
+    socket.emit('join-room', { roomId: activeTeacherRoomId, role: 'teacher' });
+  }
+});
+
+// YouTube Streaming Modal Handlers (index (1).html-এর বাটনের জন্য)
+const streamKeyModal = document.getElementById('streamKeyModal');
+const streamKeyInput = document.getElementById('streamKeyInput');
+const confirmStreamBtn = document.getElementById('confirmStreamBtn');
+const cancelStreamBtn = document.getElementById('cancelStreamBtn');
+const youtubeStreamBtn = document.getElementById('youtubeStreamBtn');
+
+if (youtubeStreamBtn) {
+  youtubeStreamBtn.onclick = function () {
+    if (!isLiveStreaming) {
+      streamKeyInput.value = '';
+      streamKeyModal.style.display = 'flex';
+    } else {
+      socket.emit('stop-youtube-stream');
+    }
+  };
+}
+if (cancelStreamBtn) {
+  cancelStreamBtn.onclick = () => { streamKeyModal.style.display = 'none'; };
+}
+if (confirmStreamBtn) {
+  confirmStreamBtn.onclick = () => {
+    const streamKey = streamKeyInput.value.trim();
+    if (!streamKey) return alert("Stream Key is required to push media live!");
+    streamKeyModal.style.display = 'none';
+    socket.emit('start-youtube-stream', { streamKey });
+  };
+}
+
+socket.on('stream-started', () => {
+  isLiveStreaming = true;
+  youtubeStreamBtn.innerText = "Stop Stream 🛑";
+  youtubeStreamBtn.style.background = "#333";
+
+  const trackingStream = isBoardSharing ? boardStream : (isScreenSharing ? screenStream : localStream);
+  mediaRecorder = new MediaRecorder(trackingStream, {
+    mimeType: 'video/webm;codecs=vp8,opus',
+    videoBitsPerSecond: 2500000
+  });
+  mediaRecorder.ondataavailable = (e) => {
+    if (e.data && e.data.size > 0) socket.emit('stream-chunk', e.data);
+  };
+  mediaRecorder.start(1000);
+});
+
+socket.on('stream-stopped', cleanupStreaming);
+socket.on('stream-error', (err) => { alert(err); cleanupStreaming(); });
+
+function cleanupStreaming() {
+  isLiveStreaming = false;
+  if (youtubeStreamBtn) {
+    youtubeStreamBtn.innerText = "Stream YouTube 🎥";
+    youtubeStreamBtn.style.background = "#ff0000";
+  }
+  if (mediaRecorder && mediaRecorder.state !== 'inactive') mediaRecorder.stop();
 }
 
 async function initiateCall(pc, userId) {
