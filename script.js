@@ -81,10 +81,22 @@ document.getElementById('btnRedo').addEventListener('click', () => {
   }
 });
 
+
+let globalBgColor = '#ffffff'; // বর্তমান নির্বাচিত গ্লোবাল ব্যাকগ্রাউন্ড কালার
+
 bgColorPicker.addEventListener('input', (e) => {
   const newBg = e.target.value;
+  globalBgColor = newBg;
   canvas.backgroundColor = newBg;
-  pages[currentPageIndex].bgColor = newBg;
+
+  // আগের ও পরের সব পেজের ব্যাকগ্রাউন্ড কালার একসাথে আপডেট করা
+  pages.forEach((page) => {
+    page.bgColor = newBg;
+    if (page.json) {
+      page.json.background = newBg; // JSON ডেটার ভেতরের ব্যাকগ্রাউন্ডও আপডেট রাখা
+    }
+  });
+
   canvas.renderAll();
   recordState();
 });
@@ -128,7 +140,7 @@ document.getElementById('btnEraser').addEventListener('click', function() {
   this.classList.add('active');
   canvas.isDrawingMode = true;
   canvas.freeDrawingBrush = new fabric.PencilBrush(canvas);
-  canvas.freeDrawingBrush.color = canvas.backgroundColor || '#ffffff';
+  canvas.freeDrawingBrush.color = canvas.backgroundColor || globalBgColor;
   canvas.freeDrawingBrush.width = parseInt(sizePicker.value, 10) * 4;
 });
 
@@ -555,7 +567,7 @@ document.getElementById('pdfUpload').addEventListener('change', async (e) => {
           recordState();
         });
       } else {
-        const offscreenCanvas = new fabric.Canvas(null, { width: canvas.getWidth(), height: canvas.getHeight(), backgroundColor: '#ffffff' });
+       const offscreenCanvas = new fabric.Canvas(null, { width: canvas.getWidth(), height: canvas.getHeight(), backgroundColor: globalBgColor });
         await new Promise((resolve) => {
           fabric.Image.fromURL(dataUrl, (img) => {
             img.scaleToWidth(canvas.getWidth() * 0.8);
@@ -611,8 +623,9 @@ function loadPage(index) {
   canvas.backgroundColor = pageBg;
   bgColorPicker.value = pageBg;
 
-  if (targetPage.json) {
+if (targetPage.json) {
     canvas.loadFromJSON(targetPage.json, () => {
+      canvas.backgroundColor = globalBgColor;
       canvas.renderAll();
       isHistoryLocked = false;
     });
@@ -626,7 +639,7 @@ function loadPage(index) {
 
 function insertPageAfterCurrent() {
   saveCurrentPage();
-  pages.splice(currentPageIndex + 1, 0, { bgImage: null, bgColor: '#ffffff', json: null, thumbnail: null, history: [], redoList: [] });
+  pages.splice(currentPageIndex + 1, 0, { bgImage: null, bgColor: globalBgColor, json: null, thumbnail: null, history: [], redoList: [] });
   loadPage(currentPageIndex + 1);
 }
 
@@ -634,7 +647,7 @@ document.getElementById('btnNextPage').addEventListener('click', () => {
   if (currentPageIndex < pages.length - 1) loadPage(currentPageIndex + 1);
   else {
     saveCurrentPage();
-    pages.push({ bgImage: null, bgColor: '#ffffff', json: null, thumbnail: null, history: [], redoList: [] });
+    pages.push({ bgImage: null, bgColor: globalBgColor, json: null, thumbnail: null, history: [], redoList: [] });
     loadPage(pages.length - 1);
   }
 });
